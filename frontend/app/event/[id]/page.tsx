@@ -31,6 +31,7 @@ interface Post {
   createdAt: string;
   author: User;
   comments: Comment[];
+  isUpvotedByUser?: boolean;
   _count: {
     comments: number;
     userUpvotes: number;
@@ -53,6 +54,7 @@ interface EventDetail {
   winner?: User;
   participants: User[];
   posts: Post[];
+  isLikedByUser?: boolean;
   _count: {
     participants: number;
     posts: number;
@@ -106,6 +108,21 @@ export default function EventDetailPage() {
 
       if (response.ok) {
         setEvent(result.data);
+        
+        // Initialize user interaction state from backend data
+        if (result.data.isLikedByUser !== undefined) {
+          setUserLikes({ [result.data.id]: result.data.isLikedByUser });
+        }
+        
+        // Initialize upvote state for all posts
+        const upvoteState: { [key: string]: boolean } = {};
+        result.data.posts.forEach((post: Post) => {
+          if (post.isUpvotedByUser !== undefined) {
+            upvoteState[post.id] = post.isUpvotedByUser;
+          }
+        });
+        setUserUpvotes(upvoteState);
+        
       } else {
         setError(result.message || 'Failed to fetch event details');
       }
@@ -701,7 +718,7 @@ export default function EventDetailPage() {
                   }`}
                 >
                   {isLiking[event.id] ? (
-                    '💖 Liking...'
+                    '💖 Updating...'
                   ) : userLikes[event.id] ? (
                     `💖 Liked (${event._count.userLikes})`
                   ) : (

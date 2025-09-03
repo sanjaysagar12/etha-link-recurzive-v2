@@ -1,10 +1,19 @@
-import { Controller, Post, Body, UseGuards, Logger, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Logger, Get, Param, Patch, UseInterceptors, Request } from '@nestjs/common';
 import { Roles, Role } from 'src/application/common/decorator/roles.decorator';
 import { JwtGuard } from '../application/common/guards/jwt.guard';
 import { RolesGuard } from '../application/common/guards/roles.guard';
 import { GetUser } from 'src/application/common/decorator/get-user.decorator';
+import { GetOptionalUser } from 'src/application/common/decorator/get-optional-user.decorator';
 import { EventService } from './event.service';
 import { CreateEventDto, CreatePostDto, CreateCommentDto } from './dto';
+
+// Create an optional JWT guard that doesn't throw errors
+class OptionalJwtGuard extends JwtGuard {
+  handleRequest(err, user, info) {
+    // Return user if valid, otherwise return null (don't throw error)
+    return user || null;
+  }
+}
 
 @Controller('api/event')
 export class EventController {
@@ -38,9 +47,13 @@ export class EventController {
     }
 
     @Get(':id')
-    async getEventById(@Param('id') eventId: string) {
-        this.logger.log(`Fetching event details for ID: ${eventId}`);
-        const data = await this.eventService.getEventById(eventId);
+    @UseGuards(OptionalJwtGuard)
+    async getEventById(
+        @Param('id') eventId: string,
+        @GetOptionalUser('sub') userId?: string,
+    ) {
+        this.logger.log(`Fetching event details for ID: ${eventId} ${userId ? `for user ${userId}` : 'for anonymous user'}`);
+        const data = await this.eventService.getEventById(eventId, userId);
         return {
             status: 'success',
             data: data,

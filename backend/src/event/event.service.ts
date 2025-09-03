@@ -82,7 +82,7 @@ export class EventService {
         });
     }
 
-    async getEventById(eventId: string) {
+    async getEventById(eventId: string, userId?: string) {
         return await this.prisma.event.findUnique({
             where: {
                 id: eventId,
@@ -201,11 +201,27 @@ export class EventService {
                                 userUpvotes: true,
                             },
                         },
+                        userUpvotes: userId ? {
+                            where: {
+                                userId: userId,
+                            },
+                            select: {
+                                id: true,
+                            },
+                        } : false,
                     },
                     orderBy: {
                         createdAt: 'desc',
                     },
                 },
+                userLikes: userId ? {
+                    where: {
+                        userId: userId,
+                    },
+                    select: {
+                        id: true,
+                    },
+                } : false,
                 _count: {
                     select: {
                         participants: true,
@@ -218,7 +234,20 @@ export class EventService {
             if (!event) {
                 throw new Error('Event not found');
             }
-            return event;
+
+            // Transform the data to include user interaction flags
+            const transformedEvent = {
+                ...event,
+                isLikedByUser: userId ? event.userLikes.length > 0 : false,
+                posts: event.posts.map(post => ({
+                    ...post,
+                    isUpvotedByUser: userId ? post.userUpvotes.length > 0 : false,
+                    userUpvotes: undefined, // Remove the raw userUpvotes data
+                })),
+                userLikes: undefined, // Remove the raw userLikes data
+            };
+
+            return transformedEvent;
         }).catch(error => {
             console.error('Error fetching event:', error);
             if (error.message === 'Event not found') {
