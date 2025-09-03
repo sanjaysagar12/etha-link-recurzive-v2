@@ -977,9 +977,9 @@ export class EventService {
     }
 
     /**
-   * Verify an event (Admin only)
+   * Verify an event (Event host or Admin only)
    */
-  async verifyEvent(eventId: string, adminId: string) {
+  async verifyEvent(eventId: string, userId: string) {
     try {
       // Check if event exists
       const event = await this.prisma.event.findUnique({
@@ -998,6 +998,11 @@ export class EventService {
 
       if (!event) {
         throw new Error('Event not found');
+      }
+
+      // Check if user is the event creator (host) - only event hosts can verify their own events
+      if (event.creator.id !== userId) {
+        throw new Error('Only event hosts can verify their events');
       }
 
       // Update event verification status
@@ -1026,7 +1031,7 @@ export class EventService {
         }
       });
 
-      this.logger.log(`Event ${eventId} verified by admin ${adminId}`);
+      this.logger.log(`Event ${eventId} verified by host ${userId}`);
       
       return updatedEvent;
     } catch (error) {

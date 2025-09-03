@@ -206,17 +206,29 @@ export class EventController {
 
     @Patch(':id/verify')
     @UseGuards(JwtGuard, RolesGuard)
-    @Roles(Role.USER)
+    @Roles(Role.USER, Role.ADMIN)
     async verifyEvent(
         @Param('id') eventId: string,
-        @GetUser('sub') adminId: string,
+        @GetUser('sub') userId: string,
     ) {
-        this.logger.log(`Admin ${adminId} attempting to verify event ${eventId}`);
-        const data = await this.eventService.verifyEvent(eventId, adminId);
+        this.logger.log(`User ${userId} attempting to verify event ${eventId}`);
+        const data = await this.eventService.verifyEvent(eventId, userId);
         return {
             status: 'success',
             data: data,
             message: 'Event verified successfully',
+        };
+    }
+
+    @Get(':id/verify-test')
+    async testVerifyRoute(
+        @Param('id') eventId: string,
+    ) {
+        this.logger.log(`Testing verify route for event ${eventId}`);
+        return {
+            status: 'success',
+            message: 'Verify route is accessible',
+            eventId: eventId
         };
     }
 

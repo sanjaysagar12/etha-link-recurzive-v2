@@ -55,6 +55,7 @@ interface EventSidebarProps {
   handleJoinEvent: () => void;
   isJoining: boolean;
   formatShortDate: (dateString: string) => string;
+  onVerifyEvent?: () => void;
 }
 
 // Simple Badge component
@@ -69,14 +70,15 @@ const Badge = ({ className = "", children, ...props }: { className?: string, chi
   );
 };
 
-export default function EventSidebar({ 
-  event, 
-  currentUserId, 
-  isEventHost, 
-  isUserParticipant, 
-  handleJoinEvent, 
-  isJoining, 
-  formatShortDate 
+export default function EventSidebar({
+  event,
+  currentUserId,
+  isEventHost,
+  isUserParticipant,
+  handleJoinEvent,
+  isJoining,
+  formatShortDate,
+  onVerifyEvent
 }: EventSidebarProps) {
   return (
     <div className="space-y-6">
@@ -121,6 +123,38 @@ export default function EventSidebar({
           </div>
         </CardContent>
       </Card>
+
+      {/* Host Actions */}
+      {currentUserId && isEventHost(currentUserId) && event.isActive && (
+        <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+          <CardHeader>
+            <CardTitle className="text-white">Host Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!event.verified && (
+              <Button
+                onClick={onVerifyEvent}
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-medium"
+              >
+                <Star className="w-4 h-4 mr-2 fill-current" />
+                Verify Event & Lock Prize
+              </Button>
+            )}
+            
+            {event.verified && (
+              <div className="text-center p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <div className="flex items-center justify-center gap-2 text-yellow-400 mb-2">
+                  <Star className="w-5 h-5 fill-current" />
+                  <span className="font-medium">Event Verified</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Prize funds are locked in smart contract
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Event Information */}
       <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
