@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import UploadImage from "@/components/UploadImage";
 
 interface User {
   id: string;
@@ -63,6 +66,12 @@ export default function EventDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Post creation form state
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [postContent, setPostContent] = useState('');
+  const [postImage, setPostImage] = useState('');
+  const [showPostForm, setShowPostForm] = useState(false);
 
   const fetchEventDetail = async () => {
     try {
@@ -166,6 +175,64 @@ export default function EventDetailPage() {
   };
 
   const currentUserId = getCurrentUserId();
+
+  const handleCreatePost = async () => {
+    if (!event || !postContent.trim()) {
+      alert('Please enter post content');
+      return;
+    }
+    
+    setIsCreatingPost(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/event/${params.id}/post`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: postContent,
+          image: postImage || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Post created successfully!');
+        // Reset form
+        setPostContent('');
+        setPostImage('');
+        setShowPostForm(false);
+        // Refresh event details to show new post
+        fetchEventDetail();
+      } else {
+        alert(`Error: ${result.message || 'Failed to create post'}`);
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('Failed to create post');
+    } finally {
+      setIsCreatingPost(false);
+    }
+  };
+
+  const handleImageUploaded = (imageUrl: string) => {
+    setPostImage(imageUrl);
+  };
+
+  const handleCancelPost = () => {
+    setPostContent('');
+    setPostImage('');
+    setShowPostForm(false);
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -378,7 +445,68 @@ export default function EventDetailPage() {
 
         {/* Posts and Comments */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-gray-900">Posts & Discussions</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">Posts & Discussions</h2>
+            {/* Create Post Button - Only for participants */}
+            {currentUserId && isUserParticipant(currentUserId) && event.isActive && (
+              <Button 
+                onClick={() => setShowPostForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Create Post
+              </Button>
+            )}
+          </div>
+
+          {/* Create Post Form */}
+          {showPostForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Create New Post</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="postContent">Content *</Label>
+                    <Textarea
+                      id="postContent"
+                      value={postContent}
+                      onChange={(e) => setPostContent(e.target.value)}
+                      placeholder="Share your progress, ideas, or questions..."
+                      rows={4}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Image (Optional)</Label>
+                    <UploadImage 
+                      onImageUploaded={handleImageUploaded}
+                      currentImage={postImage}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleCreatePost}
+                      disabled={isCreatingPost || !postContent.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {isCreatingPost ? 'Creating Post...' : 'Create Post'}
+                    </Button>
+                    <Button
+                      onClick={handleCancelPost}
+                      variant="outline"
+                      disabled={isCreatingPost}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           {event.posts.length === 0 ? (
             <Card>
