@@ -341,8 +341,13 @@ export class EventService {
         const isCreator = event.creator.id === userId;
         const isParticipant = event.participants.some(participant => participant.id === userId);
 
-        if (!isCreator && !isParticipant) {
-            throw new Error('You must be a participant or creator to post in this event');
+        // Only participants can post (creators must also join to post)
+        if (!isParticipant) {
+            if (isCreator) {
+                throw new Error('Event creator must join the event to post');
+            } else {
+                throw new Error('You must join the event to post');
+            }
         }
 
         // Create the post
