@@ -223,4 +223,86 @@ export class EventService {
             throw new Error('Failed to fetch event');
         });
     }
+
+    async joinEvent(eventId: string, userId: string) {
+        // First, check if the event exists and get event details
+        const event = await this.prisma.event.findUnique({
+            where: { id: eventId },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                    },
+                },
+                participants: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Check if user is the event creator (host)
+        if (event.creator.id === userId) {
+            throw new Error('Event host cannot join their own event');
+        }
+
+        // Check if user is already a participant
+        const isAlreadyParticipant = event.participants.some(participant => participant.id === userId);
+        if (isAlreadyParticipant) {
+            throw new Error('You are already a participant in this event');
+        }
+
+        // Check if event is active
+        if (!event.isActive) {
+            throw new Error('Cannot join an inactive event');
+        }
+
+        // Check if event has not ended
+        if (new Date() > event.endDate) {
+            throw new Error('Cannot join an event that has already ended');
+        }
+
+        // Add user to participants
+        return await this.prisma.event.update({
+            where: { id: eventId },
+            data: {
+                participants: {
+                    connect: { id: userId },
+                },
+            },
+            select: {
+                id: true,
+                title: true,
+                participants: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        participants: true,
+                    },
+                },
+            },
+        }).then(updatedEvent => {
+            return {
+                event: {
+                    id: updatedEvent.id,
+                    title: updatedEvent.title,
+                    participantCount: updatedEvent._count.participants,
+                },
+                message: 'Successfully joined the event',
+            };
+        }).catch(error => {
+            console.error('Error joining event:', error);
+            throw new Error('Failed to join event');
+        });
+    }
 }

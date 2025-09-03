@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Logger, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Logger, Get, Param, Patch } from '@nestjs/common';
 import { Roles, Role } from 'src/application/common/decorator/roles.decorator';
 import { JwtGuard } from '../application/common/guards/jwt.guard';
 import { RolesGuard } from '../application/common/guards/roles.guard';
@@ -44,6 +44,22 @@ export class EventController {
         return {
             status: 'success',
             data: data,
+        };
+    }
+
+    @Patch(':id/join')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async joinEvent(
+        @Param('id') eventId: string,
+        @GetUser('sub') userId: string,
+    ) {
+        this.logger.log(`User ${userId} attempting to join event ${eventId}`);
+        const data = await this.eventService.joinEvent(eventId, userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Successfully joined the event',
         };
     }
 }
