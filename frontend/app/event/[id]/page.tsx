@@ -91,17 +91,18 @@ export default function EventDetailPage() {
     try {
       const token = localStorage.getItem('access_token');
       
-      if (!token) {
-        setError('Please login first');
-        return;
+      const headers: { [key: string]: string } = {
+        'Content-Type': 'application/json',
+      };
+
+      // Only add Authorization header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(`http://localhost:3000/api/event/${params.id}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       const result = await response.json();
@@ -109,19 +110,21 @@ export default function EventDetailPage() {
       if (response.ok) {
         setEvent(result.data);
         
-        // Initialize user interaction state from backend data
-        if (result.data.isLikedByUser !== undefined) {
+        // Initialize user interaction state from backend data (only if user is logged in)
+        if (token && result.data.isLikedByUser !== undefined) {
           setUserLikes({ [result.data.id]: result.data.isLikedByUser });
         }
         
-        // Initialize upvote state for all posts
-        const upvoteState: { [key: string]: boolean } = {};
-        result.data.posts.forEach((post: Post) => {
-          if (post.isUpvotedByUser !== undefined) {
-            upvoteState[post.id] = post.isUpvotedByUser;
-          }
-        });
-        setUserUpvotes(upvoteState);
+        // Initialize upvote state for all posts (only if user is logged in)
+        if (token) {
+          const upvoteState: { [key: string]: boolean } = {};
+          result.data.posts.forEach((post: Post) => {
+            if (post.isUpvotedByUser !== undefined) {
+              upvoteState[post.id] = post.isUpvotedByUser;
+            }
+          });
+          setUserUpvotes(upvoteState);
+        }
         
       } else {
         setError(result.message || 'Failed to fetch event details');
@@ -833,22 +836,34 @@ export default function EventDetailPage() {
                           disabled={isUpvoting[post.id]}
                           variant="ghost"
                           size="sm"
-                          className={`p-1 h-auto ${
+                          className={`p-1 h-auto transition-all duration-200 ${
                             userUpvotes[post.id] 
-                              ? 'text-blue-600 hover:text-blue-700' 
-                              : 'text-gray-500 hover:text-gray-700'
+                              ? 'text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                           }`}
                         >
                           {isUpvoting[post.id] ? (
-                            '⏳'
+                            <span className="flex items-center gap-1">
+                              <span className="animate-pulse">⏳</span>
+                              {post._count.userUpvotes}
+                            </span>
                           ) : userUpvotes[post.id] ? (
-                            `👍 ${post._count.userUpvotes}`
+                            <span className="flex items-center gap-1 font-medium">
+                              <span className="text-blue-600">👍</span>
+                              {post._count.userUpvotes}
+                            </span>
                           ) : (
-                            `👍 ${post._count.userUpvotes}`
+                            <span className="flex items-center gap-1">
+                              <span>👍</span>
+                              {post._count.userUpvotes}
+                            </span>
                           )}
                         </Button>
                       ) : (
-                        <span className="text-gray-500">👍 {post._count.userUpvotes}</span>
+                        <span className="text-gray-500 flex items-center gap-1">
+                          <span>👍</span>
+                          {post._count.userUpvotes}
+                        </span>
                       )}
                       <span className="text-gray-500">💬 {post._count.comments}</span>
                     </div>
