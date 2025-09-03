@@ -1,4 +1,4 @@
-# Etha-Link
+# EtherLink
 ## 🚀 Quick Start Guide
 
 This project consists of two main parts that need to be run **in order**:
