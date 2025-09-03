@@ -9,6 +9,7 @@ interface Event {
   title: string;
   description?: string;
   prize?: string;
+  thumbnail?: string;
   verified: boolean;
   startDate: string;
   endDate: string;
@@ -123,6 +124,18 @@ export default function EventsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
               <Card key={event.id} className="hover:shadow-lg transition-shadow">
+                {event.thumbnail && (
+                  <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+                    <img
+                      src={event.thumbnail}
+                      alt={event.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg font-semibold line-clamp-2">

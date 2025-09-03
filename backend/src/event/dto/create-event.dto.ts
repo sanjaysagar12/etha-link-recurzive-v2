@@ -13,6 +13,10 @@ export class CreateEventDto {
     prize?: string;
 
     @IsOptional()
+    @IsString()
+    thumbnail?: string;
+
+    @IsOptional()
     @IsBoolean()
     verified?: boolean;
 

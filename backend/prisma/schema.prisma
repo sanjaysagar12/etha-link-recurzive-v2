@@ -45,6 +45,7 @@ model Event {
   title       String
   description String?
   prize       String?
+  thumbnail   String?
   verified    Boolean  @default(false)
   startDate   DateTime
   endDate     DateTime

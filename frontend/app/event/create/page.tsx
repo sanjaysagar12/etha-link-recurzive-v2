@@ -12,6 +12,7 @@ export default function CreateEventPage() {
     title: '',
     description: '',
     prize: '',
+    thumbnail: '',
     startDate: '',
     endDate: ''
   });
@@ -55,6 +56,7 @@ export default function CreateEventPage() {
           title: '',
           description: '',
           prize: '',
+          thumbnail: '',
           startDate: '',
           endDate: ''
         });
@@ -114,6 +116,19 @@ export default function CreateEventPage() {
                   value={formData.prize}
                   onChange={handleInputChange}
                   placeholder="Enter prize details"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail">Thumbnail URL</Label>
+                <Input
+                  id="thumbnail"
+                  name="thumbnail"
+                  type="url"
+                  value={formData.thumbnail}
+                  onChange={handleInputChange}
+                  placeholder="Enter thumbnail image URL"
                   className="w-full"
                 />
               </div>
