@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateEventDto, CreatePostDto } from './dto';
+import { CreateEventDto, CreatePostDto, CreateCommentDto } from './dto';
 
 @Injectable()
 export class EventService {
@@ -390,6 +390,178 @@ export class EventService {
         }).catch(error => {
             console.error('Error creating post:', error);
             throw new Error('Failed to create post');
+        });
+    }
+
+    async createComment(postId: string, userId: string, createCommentDto: CreateCommentDto) {
+        // First, check if the post exists and get post details with event info
+        const post = await this.prisma.post.findUnique({
+            where: { id: postId },
+            include: {
+                event: {
+                    include: {
+                        creator: {
+                            select: {
+                                id: true,
+                            },
+                        },
+                        participants: {
+                            select: {
+                                id: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!post) {
+            throw new Error('Post not found');
+        }
+
+        // Check if event is active
+        if (!post.event.isActive) {
+            throw new Error('Cannot comment on posts in an inactive event');
+        }
+
+        // Check if user is either the creator or a participant of the event
+        const isCreator = post.event.creator.id === userId;
+        const isParticipant = post.event.participants.some(participant => participant.id === userId);
+
+        if (!isParticipant && !isCreator) {
+            throw new Error('You must be a participant or creator to comment on this post');
+        }
+
+        // Create the comment
+        return await this.prisma.comment.create({
+            data: {
+                content: createCommentDto.content,
+                postId: postId,
+                authorId: userId,
+            },
+            select: {
+                id: true,
+                content: true,
+                createdAt: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                post: {
+                    select: {
+                        id: true,
+                        event: {
+                            select: {
+                                id: true,
+                                title: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }).then(comment => {
+            return comment;
+        }).catch(error => {
+            console.error('Error creating comment:', error);
+            throw new Error('Failed to create comment');
+        });
+    }
+
+    async replyToComment(commentId: string, userId: string, createCommentDto: CreateCommentDto) {
+        // First, check if the parent comment exists and get event info
+        const parentComment = await this.prisma.comment.findUnique({
+            where: { id: commentId },
+            include: {
+                post: {
+                    include: {
+                        event: {
+                            include: {
+                                creator: {
+                                    select: {
+                                        id: true,
+                                    },
+                                },
+                                participants: {
+                                    select: {
+                                        id: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!parentComment) {
+            throw new Error('Comment not found');
+        }
+
+        // Check if event is active
+        if (!parentComment.post.event.isActive) {
+            throw new Error('Cannot reply to comments in an inactive event');
+        }
+
+        // Check if user is either the creator or a participant of the event
+        const isCreator = parentComment.post.event.creator.id === userId;
+        const isParticipant = parentComment.post.event.participants.some(participant => participant.id === userId);
+
+        if (!isParticipant && !isCreator) {
+            throw new Error('You must be a participant or creator to reply to this comment');
+        }
+
+        // Create the reply comment
+        return await this.prisma.comment.create({
+            data: {
+                content: createCommentDto.content,
+                postId: parentComment.postId,
+                authorId: userId,
+                parentId: commentId,
+            },
+            select: {
+                id: true,
+                content: true,
+                createdAt: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                parent: {
+                    select: {
+                        id: true,
+                        author: {
+                            select: {
+                                name: true,
+                                email: true,
+                            },
+                        },
+                    },
+                },
+                post: {
+                    select: {
+                        id: true,
+                        event: {
+                            select: {
+                                id: true,
+                                title: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }).then(reply => {
+            return reply;
+        }).catch(error => {
+            console.error('Error creating reply:', error);
+            throw new Error('Failed to create reply');
         });
     }
 }

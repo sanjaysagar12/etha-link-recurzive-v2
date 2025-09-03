@@ -4,7 +4,7 @@ import { JwtGuard } from '../application/common/guards/jwt.guard';
 import { RolesGuard } from '../application/common/guards/roles.guard';
 import { GetUser } from 'src/application/common/decorator/get-user.decorator';
 import { EventService } from './event.service';
-import { CreateEventDto, CreatePostDto } from './dto';
+import { CreateEventDto, CreatePostDto, CreateCommentDto } from './dto';
 
 @Controller('api/event')
 export class EventController {
@@ -77,6 +77,40 @@ export class EventController {
             status: 'success',
             data: data,
             message: 'Post created successfully',
+        };
+    }
+
+    @Post('post/:postId/comment')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async createComment(
+        @Param('postId') postId: string,
+        @GetUser('sub') userId: string,
+        @Body() createCommentDto: CreateCommentDto,
+    ) {
+        this.logger.log(`User ${userId} creating comment for post ${postId}`);
+        const data = await this.eventService.createComment(postId, userId, createCommentDto);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Comment created successfully',
+        };
+    }
+
+    @Post('comment/:commentId/reply')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async replyToComment(
+        @Param('commentId') commentId: string,
+        @GetUser('sub') userId: string,
+        @Body() createCommentDto: CreateCommentDto,
+    ) {
+        this.logger.log(`User ${userId} replying to comment ${commentId}`);
+        const data = await this.eventService.replyToComment(commentId, userId, createCommentDto);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Reply created successfully',
         };
     }
 }

@@ -73,6 +73,12 @@ export default function EventDetailPage() {
   const [postImage, setPostImage] = useState('');
   const [showPostForm, setShowPostForm] = useState(false);
 
+  // Comment form state
+  const [commentContent, setCommentContent] = useState<{ [key: string]: string }>({});
+  const [isCreatingComment, setIsCreatingComment] = useState<{ [key: string]: boolean }>({});
+  const [showCommentForm, setShowCommentForm] = useState<{ [key: string]: boolean }>({});
+  const [showReplyForm, setShowReplyForm] = useState<{ [key: string]: boolean }>({});
+
   const fetchEventDetail = async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -234,6 +240,109 @@ export default function EventDetailPage() {
     setShowPostForm(false);
   };
 
+  const handleCreateComment = async (postId: string) => {
+    const content = commentContent[postId];
+    if (!content || !content.trim()) {
+      alert('Please enter comment content');
+      return;
+    }
+    
+    setIsCreatingComment(prev => ({ ...prev, [postId]: true }));
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/event/post/${postId}/comment`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Comment created successfully!');
+        // Reset form
+        setCommentContent(prev => ({ ...prev, [postId]: '' }));
+        setShowCommentForm(prev => ({ ...prev, [postId]: false }));
+        // Refresh event details to show new comment
+        fetchEventDetail();
+      } else {
+        alert(`Error: ${result.message || 'Failed to create comment'}`);
+      }
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      alert('Failed to create comment');
+    } finally {
+      setIsCreatingComment(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const handleCreateReply = async (commentId: string) => {
+    const content = commentContent[commentId];
+    if (!content || !content.trim()) {
+      alert('Please enter reply content');
+      return;
+    }
+    
+    setIsCreatingComment(prev => ({ ...prev, [commentId]: true }));
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/event/comment/${commentId}/reply`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Reply created successfully!');
+        // Reset form
+        setCommentContent(prev => ({ ...prev, [commentId]: '' }));
+        setShowReplyForm(prev => ({ ...prev, [commentId]: false }));
+        // Refresh event details to show new reply
+        fetchEventDetail();
+      } else {
+        alert(`Error: ${result.message || 'Failed to create reply'}`);
+      }
+    } catch (error) {
+      console.error('Error creating reply:', error);
+      alert('Failed to create reply');
+    } finally {
+      setIsCreatingComment(prev => ({ ...prev, [commentId]: false }));
+    }
+  };
+
+  const handleCancelComment = (id: string, type: 'comment' | 'reply') => {
+    setCommentContent(prev => ({ ...prev, [id]: '' }));
+    if (type === 'comment') {
+      setShowCommentForm(prev => ({ ...prev, [id]: false }));
+    } else {
+      setShowReplyForm(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -247,6 +356,7 @@ export default function EventDetailPage() {
   const renderComment = (comment: Comment, level = 0) => {
     const maxLevel = 3;
     const indentClass = level > 0 ? `ml-${Math.min(level * 4, 12)}` : '';
+    const canParticipate = currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) && event?.isActive;
     
     return (
       <div key={comment.id} className={`${indentClass} mb-4`}>
@@ -270,8 +380,56 @@ export default function EventDetailPage() {
               {formatDate(comment.createdAt)}
             </span>
           </div>
-          <p className="text-sm text-gray-700">{comment.content}</p>
+          <p className="text-sm text-gray-700 mb-2">{comment.content}</p>
+          
+          {/* Reply Button - Only show for participants and within max level */}
+          {canParticipate && level < maxLevel && !showReplyForm[comment.id] && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowReplyForm(prev => ({ ...prev, [comment.id]: true }))}
+              className="text-xs text-blue-600 hover:text-blue-700 p-1 h-auto"
+            >
+              Reply
+            </Button>
+          )}
         </div>
+
+        {/* Reply Form */}
+        {showReplyForm[comment.id] && (
+          <div className={`${indentClass} mt-3`}>
+            <div className="bg-white border rounded-lg p-3">
+              <div className="space-y-2">
+                <Textarea
+                  value={commentContent[comment.id] || ''}
+                  onChange={(e) => setCommentContent(prev => ({ ...prev, [comment.id]: e.target.value }))}
+                  placeholder="Write a reply..."
+                  rows={2}
+                  className="text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleCreateReply(comment.id)}
+                    disabled={isCreatingComment[comment.id] || !commentContent[comment.id]?.trim()}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                  >
+                    {isCreatingComment[comment.id] ? 'Replying...' : 'Reply'}
+                  </Button>
+                  <Button
+                    onClick={() => handleCancelComment(comment.id, 'reply')}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    disabled={isCreatingComment[comment.id]}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {comment.replies && comment.replies.length > 0 && level < maxLevel && (
           <div className="mt-2">
@@ -567,6 +725,67 @@ export default function EventDetailPage() {
                       <div className="space-y-4">
                         {post.comments.map((comment) => renderComment(comment))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Comment Form - Only for participants */}
+                  {currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) && event.isActive && (
+                    <div className="mt-6 pt-4 border-t">
+                      {!showCommentForm[post.id] ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowCommentForm(prev => ({ ...prev, [post.id]: true }))}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          💬 Add Comment
+                        </Button>
+                      ) : (
+                        <div className="bg-white border rounded-lg p-3">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-2">
+                              {currentUserId && event.participants.find(p => p.id === currentUserId)?.avatar ? (
+                                <img
+                                  src={event.participants.find(p => p.id === currentUserId)?.avatar}
+                                  alt="Your avatar"
+                                  className="w-8 h-8 rounded-full"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs text-blue-600">
+                                  You
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <Textarea
+                                  value={commentContent[post.id] || ''}
+                                  onChange={(e) => setCommentContent(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                  placeholder="Write a comment..."
+                                  rows={3}
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                onClick={() => handleCreateComment(post.id)}
+                                disabled={isCreatingComment[post.id] || !commentContent[post.id]?.trim()}
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                {isCreatingComment[post.id] ? 'Commenting...' : 'Comment'}
+                              </Button>
+                              <Button
+                                onClick={() => handleCancelComment(post.id, 'comment')}
+                                variant="outline"
+                                size="sm"
+                                disabled={isCreatingComment[post.id]}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
