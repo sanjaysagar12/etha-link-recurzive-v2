@@ -7,9 +7,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { EventModule } from './event/event.module';
 import { S3Module } from './s3/s3.module';
+import { EtherlinkModule } from './etherlink/etherlink.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, UserModule, EventModule, S3Module],
+  imports: [AuthModule, PrismaModule, UserModule, EventModule, S3Module, EtherlinkModule],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
