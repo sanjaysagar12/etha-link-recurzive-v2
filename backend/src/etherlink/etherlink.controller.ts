@@ -12,6 +12,10 @@ export class LockFundsDto {
   amountInEther: string;
 }
 
+export class FundContractDto {
+  amountInEther: string;
+}
+
 @Controller('etherlink')
 export class EtherlinkController {
   private readonly logger = new Logger(EtherlinkController.name);
@@ -73,6 +77,35 @@ export class EtherlinkController {
         {
           success: false,
           message: 'Failed to lock funds',
+          error: error.message
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  /**
+   * Fund the contract
+   * POST /etherlink/fund-contract
+   */
+  @Post('fund-contract')
+  async fundContract(@Body() dto: FundContractDto) {
+    try {
+      this.logger.log(`Funding contract request: ${JSON.stringify(dto)}`);
+      
+      const result = await this.etherlinkService.fundContract(dto.amountInEther);
+      
+      return {
+        success: true,
+        message: 'Contract funded successfully',
+        data: result
+      };
+    } catch (error) {
+      this.logger.error('Error in fundContract endpoint', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: 'Failed to fund contract',
           error: error.message
         },
         HttpStatus.BAD_REQUEST

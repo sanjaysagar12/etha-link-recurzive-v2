@@ -218,8 +218,16 @@ export class EtherlinkService {
 
       // Check contract balance before transaction
       const contractBalance = await this.getContractBalance();
+      this.logger.log(`Contract balance: ${ethers.formatEther(contractBalance)} ETH`);
+      this.logger.log(`Amount to send: ${amountInEther} ETH`);
+      
       if (contractBalance < amountInWei) {
-        throw new Error(`Insufficient contract balance. Available: ${ethers.formatEther(contractBalance)} ETH`);
+        throw new Error(`Insufficient contract balance. Available: ${ethers.formatEther(contractBalance)} ETH, Required: ${amountInEther} ETH`);
+      }
+
+      // Additional validation: Check if contract has any ETH at all
+      if (contractBalance === 0n) {
+        throw new Error('Contract has no ETH balance. Please fund the contract first using the lock-funds endpoint.');
       }
 
       let transactionRecord: any = null;
@@ -253,9 +261,19 @@ export class EtherlinkService {
       }
 
       // Now handle blockchain transaction (outside database transaction)
+      this.logger.log(`Calling contract.distributeFunds with recipient: ${recipientAddress}, amount: ${amountInWei.toString()} wei (${amountInEther} ETH)`);
+      
       const transaction = await this.contract.distributeFunds(recipientAddress, amountInWei);
       
       this.logger.log(`Transaction sent: ${transaction.hash}`);
+      this.logger.log(`Transaction details:`, {
+        to: transaction.to,
+        from: transaction.from,
+        value: transaction.value?.toString() || '0',
+        gasLimit: transaction.gasLimit?.toString(),
+        gasPrice: transaction.gasPrice?.toString(),
+        data: transaction.data
+      });
 
       // Try to wait for confirmation, but handle timeout gracefully
       let gasUsed = 'unknown';
@@ -726,6 +744,67 @@ export class EtherlinkService {
     }
 
     return verification;
+  }
+
+  /**
+   * Fund the contract directly (sends ETH to contract address)
+   * @param amountInEther - Amount in Ether to send to contract
+   * @returns Transaction receipt
+   */
+  async fundContract(amountInEther: string): Promise<any> {
+    try {
+      this.logger.log(`Funding contract with ${amountInEther} ETH`);
+
+      const amountInWei = ethers.parseEther(amountInEther);
+
+      // Check wallet balance first
+      const walletBalance = await this.provider.getBalance(this.wallet.address);
+      if (walletBalance < amountInWei) {
+        throw new Error(`Insufficient wallet balance. Available: ${ethers.formatEther(walletBalance)} ETH, Required: ${amountInEther} ETH`);
+      }
+
+      // Send ETH directly to contract address
+      const transaction = await this.wallet.sendTransaction({
+        to: this.CONTRACT_ADDRESS,
+        value: amountInWei
+      });
+
+      this.logger.log(`Fund contract transaction sent: ${transaction.hash}`);
+
+      // Try to wait for confirmation
+      let receipt = null;
+      let gasUsed = 'unknown';
+      let blockNumber: string | number = 'pending';
+      let status = 'pending';
+
+      try {
+        const txReceipt = await transaction.wait();
+        gasUsed = txReceipt.gasUsed.toString();
+        blockNumber = txReceipt.blockNumber;
+        status = 'confirmed';
+        this.logger.log(`Fund contract transaction confirmed in block ${blockNumber}`);
+      } catch (receiptError: any) {
+        this.logger.warn(`Could not get fund transaction receipt: ${receiptError.message}`);
+      }
+
+      // Get updated contract balance
+      const newContractBalance = await this.getContractBalance();
+
+      return {
+        success: true,
+        transactionHash: transaction.hash,
+        blockNumber: blockNumber,
+        gasUsed: gasUsed,
+        amount: amountInEther,
+        amountInWei: amountInWei.toString(),
+        contractBalance: ethers.formatEther(newContractBalance),
+        status: status
+      };
+
+    } catch (error) {
+      this.logger.error('Error funding contract', error);
+      throw error;
+    }
   }
 
   /**
