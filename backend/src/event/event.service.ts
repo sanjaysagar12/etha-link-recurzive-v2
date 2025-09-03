@@ -81,4 +81,146 @@ export class EventService {
             throw new Error('Failed to fetch events');
         });
     }
+
+    async getEventById(eventId: string) {
+        return await this.prisma.event.findUnique({
+            where: {
+                id: eventId,
+            },
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                prize: true,
+                thumbnail: true,
+                verified: true,
+                startDate: true,
+                endDate: true,
+                isActive: true,
+                createdAt: true,
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                winner: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                participants: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                posts: {
+                    select: {
+                        id: true,
+                        title: true,
+                        content: true,
+                        createdAt: true,
+                        author: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                avatar: true,
+                            },
+                        },
+                        comments: {
+                            where: {
+                                parentId: null, // Only top-level comments
+                            },
+                            select: {
+                                id: true,
+                                content: true,
+                                createdAt: true,
+                                author: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        avatar: true,
+                                    },
+                                },
+                                replies: {
+                                    select: {
+                                        id: true,
+                                        content: true,
+                                        createdAt: true,
+                                        author: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                email: true,
+                                                avatar: true,
+                                            },
+                                        },
+                                        replies: {
+                                            select: {
+                                                id: true,
+                                                content: true,
+                                                createdAt: true,
+                                                author: {
+                                                    select: {
+                                                        id: true,
+                                                        name: true,
+                                                        email: true,
+                                                        avatar: true,
+                                                    },
+                                                },
+                                            },
+                                            orderBy: {
+                                                createdAt: 'asc',
+                                            },
+                                        },
+                                    },
+                                    orderBy: {
+                                        createdAt: 'asc',
+                                    },
+                                },
+                            },
+                            orderBy: {
+                                createdAt: 'desc',
+                            },
+                        },
+                        _count: {
+                            select: {
+                                comments: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                },
+                _count: {
+                    select: {
+                        participants: true,
+                        posts: true,
+                    },
+                },
+            },
+        }).then(event => {
+            if (!event) {
+                throw new Error('Event not found');
+            }
+            return event;
+        }).catch(error => {
+            console.error('Error fetching event:', error);
+            if (error.message === 'Event not found') {
+                throw new Error('Event not found');
+            }
+            throw new Error('Failed to fetch event');
+        });
+    }
 }
