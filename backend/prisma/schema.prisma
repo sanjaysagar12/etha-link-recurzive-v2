@@ -30,5 +30,80 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Event relationships
+  createdEvents Event[] @relation("EventCreator")
+  joinedEvents  Event[] @relation("EventParticipants")
+  wonEvents     Event[] @relation("EventWinner")
+  posts         Post[]
+  comments      Comment[]
+
   @@map("users")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  prize       String?
+  poll        String?
+  verified    Boolean  @default(false)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Creator relationship
+  creatorId   String
+  creator     User     @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Winner relationship
+  winnerId    String?
+  winner      User?    @relation("EventWinner", fields: [winnerId], references: [id])
+
+  // Participants relationship
+  participants User[]  @relation("EventParticipants")
+  
+  // Posts relationship
+  posts       Post[]
+
+  @@map("events")
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Event relationship
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Author relationship
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Comments relationship
+  comments  Comment[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Post relationship
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Author relationship
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
 }
