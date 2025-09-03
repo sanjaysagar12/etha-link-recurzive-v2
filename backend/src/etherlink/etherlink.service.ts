@@ -174,13 +174,17 @@ export class EtherlinkService {
 
   /**
    * Distribute funds to a recipient
+   * @param senderIdOrAddress - The sender's user ID or wallet address
    * @param recipientAddress - The address to receive the funds
    * @param amountInEther - The amount in Ether (will be converted to Wei)
    * @returns Transaction receipt
    */
-  async distributeFunds(recipientAddress: string, amountInEther: string): Promise<any> {
+  async distributeFunds(senderIdOrAddress: string, recipientAddress: string, amountInEther: string): Promise<any> {
     try {
-      this.logger.log(`Distributing ${amountInEther} ETH to ${recipientAddress}`);
+      this.logger.log(`Distributing ${amountInEther} ETH from ${senderIdOrAddress} to ${recipientAddress}`);
+
+      // Resolve sender address (could be user ID or wallet address)
+      const senderAddress = await this.resolveWalletAddress(senderIdOrAddress);
 
       // Validate recipient address
       if (!ethers.isAddress(recipientAddress)) {
@@ -201,19 +205,44 @@ export class EtherlinkService {
       
       this.logger.log(`Transaction sent: ${transaction.hash}`);
 
-      // Wait for transaction confirmation
-      const receipt = await transaction.wait();
-      
-      this.logger.log(`Transaction confirmed in block ${receipt.blockNumber}`);
+      // Try to wait for confirmation, but handle timeout gracefully
+      let gasUsed = 'unknown';
+      let blockNumber: string | number = 'pending';
+      let status = 'pending';
+
+      try {
+        // Set a shorter timeout for free tier providers (30 seconds)
+        const timeoutMs = 30000;
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Receipt timeout')), timeoutMs)
+        );
+        
+        const receipt = await Promise.race([
+          transaction.wait(),
+          timeoutPromise
+        ]) as any; // Type assertion to handle the race condition
+        
+        if (receipt && receipt.gasUsed && receipt.blockNumber) {
+          gasUsed = receipt.gasUsed.toString();
+          blockNumber = receipt.blockNumber;
+          status = 'confirmed';
+          this.logger.log(`Transaction confirmed in block ${blockNumber}`);
+        }
+      } catch (receiptError: any) {
+        this.logger.warn(`Could not get transaction receipt (likely due to free tier limitations): ${receiptError.message}`);
+        this.logger.log(`Transaction ${transaction.hash} was sent successfully but confirmation pending`);
+      }
       
       return {
         success: true,
         transactionHash: transaction.hash,
-        blockNumber: receipt.blockNumber,
-        gasUsed: receipt.gasUsed.toString(),
+        blockNumber: blockNumber,
+        gasUsed: gasUsed,
+        sender: senderIdOrAddress,
         recipient: recipientAddress,
         amount: amountInEther,
-        amountInWei: amountInWei.toString()
+        amountInWei: amountInWei.toString(),
+        status: status
       };
 
     } catch (error) {
@@ -332,6 +361,21 @@ export class EtherlinkService {
       return ethers.formatEther(balance);
     } catch (error) {
       this.logger.error('Error getting wallet balance', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get wallet balance by address
+   * @param address - Wallet address
+   * @returns Balance in Ether as string
+   */
+  async getWalletBalanceByAddress(address: string): Promise<string> {
+    try {
+      const balance = await this.provider.getBalance(address);
+      return ethers.formatEther(balance);
+    } catch (error) {
+      this.logger.error('Error getting wallet balance by address', error);
       throw error;
     }
   }
@@ -618,5 +662,22 @@ export class EtherlinkService {
     }
 
     return verification;
+  }
+
+  /**
+   * Get user's wallet address by user ID or return if already an address
+   * @param userIdOrAddress - User ID or wallet address  
+   * @returns Wallet address
+   */
+  private async resolveWalletAddress(userIdOrAddress: string): Promise<string> {
+    // If it looks like an Ethereum address (starts with 0x and 42 chars), return as-is
+    if (userIdOrAddress.startsWith('0x') && userIdOrAddress.length === 42) {
+      return userIdOrAddress;
+    }
+    
+    // Otherwise treat as user ID and look up wallet address
+    // For simplicity, we'll return the host wallet address for internal transfers
+    // In a real implementation, you'd look up the user's specific wallet address
+    return this.wallet.address;
   }
 }

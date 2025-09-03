@@ -17,6 +17,7 @@ export class UserService {
                 role: true,
                 isActive: true,
                 createdAt: true,
+                walletAddress: true,
                 
                 // Events created by user (hosted events)
                 createdEvents: {

@@ -990,7 +990,8 @@ export class EventService {
               id: true,
               name: true,
               email: true,
-              avatar: true
+              avatar: true,
+              wallet: true, // Include wallet to check balance
             }
           }
         }
@@ -1005,35 +1006,93 @@ export class EventService {
         throw new Error('Only event hosts can verify their events');
       }
 
-      // Update event verification status
-      const updatedEvent = await this.prisma.event.update({
-        where: { id: eventId },
-        data: { 
-          verified: true,
-          updatedAt: new Date()
-        },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              avatar: true
-            }
+      // Check if event is already verified
+      if (event.verified) {
+        throw new Error('Event is already verified');
+      }
+
+      // Check if event has a prize amount
+      if (!event.prize || parseFloat(event.prize) <= 0) {
+        throw new Error('Event must have a valid prize amount to be verified');
+      }
+
+      const prizeAmount = parseFloat(event.prize);
+
+      // Ensure user has a wallet
+      let userWallet = event.creator.wallet;
+      if (!userWallet) {
+        // Create wallet if it doesn't exist
+        userWallet = await this.prisma.wallet.create({
+          data: {
+            userId: userId,
+            balance: '0',
+            lockedBalance: '0',
+          }
+        });
+      }
+
+     
+
+      // Use transaction to ensure atomicity
+      const result = await this.prisma.$transaction(async (prisma) => {
+        // 1. Update user's wallet: move prize amount from balance to locked balance
+        const currentBalance = parseFloat(userWallet.balance);
+        const currentLockedBalance = parseFloat(userWallet.lockedBalance);
+
+        await prisma.wallet.update({
+          where: { userId: userId },
+          data: {
+            balance: (currentBalance - prizeAmount).toString(),
+            lockedBalance: (currentLockedBalance + prizeAmount).toString(),
+          }
+        });
+
+        // 2. Update event verification status
+        const updatedEvent = await prisma.event.update({
+          where: { id: eventId },
+          data: { 
+            verified: true,
+            updatedAt: new Date()
           },
-          _count: {
-            select: {
-              participants: true,
-              posts: true,
-              userLikes: true
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatar: true
+              }
+            },
+            _count: {
+              select: {
+                participants: true,
+                posts: true,
+                userLikes: true
+              }
             }
           }
-        }
+        });
+
+        // 3. Record the transaction for prize locking
+        await prisma.transaction.create({
+          data: {
+            amount: prizeAmount.toString(),
+            type: 'PRIZE_LOCK',
+            status: 'CONFIRMED',
+            description: `Prize locked for event verification: ${event.title}`,
+            userId: userId,
+            senderWalletId: userWallet.id,
+            eventId: eventId,
+            confirmedAt: new Date(),
+          }
+        });
+
+        return updatedEvent;
       });
 
-      this.logger.log(`Event ${eventId} verified by host ${userId}`);
+      this.logger.log(`Event ${eventId} verified by host ${userId}. Prize ${prizeAmount} ETH locked in wallet.`);
       
-      return updatedEvent;
+      return result;
     } catch (error) {
       this.logger.error(`Failed to verify event ${eventId}:`, error);
       throw error;

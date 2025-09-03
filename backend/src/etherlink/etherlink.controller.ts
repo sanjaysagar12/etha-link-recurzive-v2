@@ -3,6 +3,7 @@ import { EtherlinkService } from './etherlink.service';
 
 // DTOs for request validation
 export class DistributeFundsDto {
+  senderAddress: string;
   recipientAddress: string;
   amountInEther: string;
 }
@@ -25,8 +26,9 @@ export class EtherlinkController {
   async distributeFunds(@Body() dto: DistributeFundsDto) {
     try {
       this.logger.log(`Distributing funds request: ${JSON.stringify(dto)}`);
-      
+
       const result = await this.etherlinkService.distributeFunds(
+        dto.senderAddress,
         dto.recipientAddress,
         dto.amountInEther
       );

@@ -23,7 +23,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Send,
+  Copy
 } from 'lucide-react';
 
 interface UserProfile {
@@ -153,6 +155,7 @@ interface WalletInfo {
   id: string;
   balance: string;
   lockedBalance: string;
+  walletAddress?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -197,6 +200,7 @@ interface FullUserData {
   role: string;
   isActive: boolean;
   createdAt: string;
+  walletAddress?: string;
   createdEvents: EventSummary[];
   joinedEvents: EventSummary[];
   wonEvents: EventSummary[];
@@ -221,6 +225,12 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isTokenInvalid, setIsTokenInvalid] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawData, setWithdrawData] = useState({
+    recipientAddress: '',
+    amount: '',
+  });
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -326,6 +336,62 @@ export default function ProfilePage() {
 
   const handleEventClick = (eventId: string) => {
     router.push(`/event/${eventId}`);
+  };
+
+  const handleWithdraw = async () => {
+    if (!userData?.wallet) {
+      alert('No wallet found. Please contact support.');
+      return;
+    }
+
+    if (parseFloat(userData.wallet.balance) <= 0) {
+      alert('Insufficient balance to withdraw.');
+      return;
+    }
+
+    setIsWithdrawing(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      const response = await fetch('http://localhost:3000/etherlink/distribute-funds', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          senderAddress: userData.id, // Use user ID instead of wallet address
+          recipientAddress: withdrawData.recipientAddress,
+          amountInEther: withdrawData.amount,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        if (result.data?.status === 'confirmed') {
+          alert(`✅ Successfully sent ${withdrawData.amount} ETH to ${withdrawData.recipientAddress}\nTransaction Hash: ${result.data.transactionHash}`);
+        } else {
+          alert(`🕐 Transaction sent! ${withdrawData.amount} ETH to ${withdrawData.recipientAddress}\nTransaction Hash: ${result.data?.transactionHash}\n\nNote: Transaction is pending confirmation. It may take a few minutes to appear on the blockchain.`);
+        }
+        setShowWithdrawModal(false);
+        setWithdrawData({ recipientAddress: '', amount: '' });
+        // Refresh profile data to show updated balance
+        fetchProfile();
+      } else {
+        alert(`❌ Error: ${result.message || 'Failed to send funds'}`);
+      }
+    } catch (error) {
+      console.error('Error withdrawing funds:', error);
+      alert('Failed to withdraw funds');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Copied to clipboard!');
   };
 
   if (isLoading) {
@@ -484,6 +550,14 @@ export default function ProfilePage() {
                     <p className="text-sm text-gray-300">Manage your ETH balance</p>
                   </div>
                 </div>
+                <button
+                  onClick={() => setShowWithdrawModal(true)}
+                  disabled={parseFloat(userData.wallet.balance) <= 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#E94042] text-white rounded-lg hover:bg-[#E94042]/90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                  Send Funds
+                </button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -509,7 +583,7 @@ export default function ProfilePage() {
               </div>
               
               <div className="mt-4 pt-4 border-t border-white/20">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div>
                     <span className="text-sm text-gray-300">Total Balance:</span>
                     <span className="text-lg font-bold text-white ml-2">
@@ -521,6 +595,28 @@ export default function ProfilePage() {
                     <p className="text-xs text-gray-300">{formatDate(userData.wallet.createdAt)}</p>
                   </div>
                 </div>
+                
+                {/* Wallet Address Display */}
+                {userData.walletAddress && (
+                  <div className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-300">Wallet Address:</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-white font-mono">
+                        {`${userData.walletAddress.slice(0, 6)}...${userData.walletAddress.slice(-4)}`}
+                      </span>
+                      <button
+                        onClick={() => copyToClipboard(userData.walletAddress!)}
+                        className="text-gray-400 hover:text-white"
+                        title="Copy address"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -618,6 +714,126 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && userData?.wallet && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="w-96 max-w-[90vw] bg-white/10 backdrop-blur-md border border-white/20 shadow-xl rounded-lg">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#E94042]/20 rounded-lg flex items-center justify-center">
+                    <Send className="w-5 h-5 text-[#E94042]" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Send Funds</h2>
+                </div>
+                <button
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Available Balance Display */}
+                <div className="bg-white/5 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-300">Available Balance</span>
+                    <span className="text-lg font-bold text-green-400">
+                      {parseFloat(userData.wallet.balance).toFixed(4)} ETH
+                    </span>
+                  </div>
+                </div>
+
+                {/* Recipient Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Recipient Address
+                  </label>
+                  <input
+                    type="text"
+                    value={withdrawData.recipientAddress}
+                    onChange={(e) => setWithdrawData({ ...withdrawData, recipientAddress: e.target.value })}
+                    placeholder="0x..."
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E94042]"
+                  />
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Amount (ETH)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      max={parseFloat(userData.wallet.balance)}
+                      value={withdrawData.amount}
+                      onChange={(e) => setWithdrawData({ ...withdrawData, amount: e.target.value })}
+                      placeholder="0.0000"
+                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E94042]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawData({ ...withdrawData, amount: userData.wallet?.balance || '0' })}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#E94042] hover:text-[#E94042]/80"
+                    >
+                      MAX
+                    </button>
+                  </div>
+                </div>
+
+                {/* Warning */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                  <p className="text-yellow-400 text-sm">
+                    ⚠️ This action cannot be undone. Please double-check the recipient address before proceeding.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowWithdrawModal(false);
+                      setWithdrawData({ recipientAddress: '', amount: '' });
+                    }}
+                    disabled={isWithdrawing}
+                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={
+                      isWithdrawing || 
+                      !withdrawData.recipientAddress || 
+                      !withdrawData.amount ||
+                      parseFloat(withdrawData.amount) <= 0 ||
+                      parseFloat(withdrawData.amount) > parseFloat(userData.wallet.balance)
+                    }
+                    className="flex-1 px-4 py-2 bg-[#E94042] text-white rounded-lg hover:bg-[#E94042]/90 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isWithdrawing ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Sending...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        <Send className="w-4 h-4" />
+                        Send {withdrawData.amount || '0'} ETH
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
