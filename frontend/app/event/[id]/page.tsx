@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import UploadImage from "@/components/UploadImage";
 import { 
   ArrowUp, 
@@ -19,8 +20,30 @@ import {
   Plus,
   X,
   Clock,
-  User
+  User,
+  ArrowLeft,
+  Share2,
+  Bookmark,
+  ChevronUp,
+  ChevronDown,
+  Send,
+  MoreHorizontal,
+  Image as ImageIcon,
+  MapPin,
+  DollarSign
 } from 'lucide-react';
+
+// Simple Badge component
+const Badge = ({ className = "", children, ...props }: { className?: string, children: React.ReactNode, [key: string]: any }) => {
+  return (
+    <span 
+      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${className}`} 
+      {...props}
+    >
+      {children}
+    </span>
+  );
+};
 
 interface User {
   id: string;
@@ -100,6 +123,9 @@ export default function EventDetailPage() {
   const [userUpvotes, setUserUpvotes] = useState<{ [key: string]: boolean }>({});
   const [isLiking, setIsLiking] = useState<{ [key: string]: boolean }>({});
   const [isUpvoting, setIsUpvoting] = useState<{ [key: string]: boolean }>({});
+
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [commentVotes, setCommentVotes] = useState<{ [key: string]: 'up' | 'down' | null }>({});
 
   const fetchEventDetail = async () => {
     try {
@@ -467,532 +493,837 @@ export default function EventDetailPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
       day: 'numeric',
-      hour: '2-digit',
+      year: 'numeric',
+      hour: 'numeric',
       minute: '2-digit',
+      hour12: true
     });
+  };
+
+  const formatShortDate = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInHours = Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    }
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  };
+
+  const handleVote = (commentId: string, voteType: 'up' | 'down') => {
+    setCommentVotes(prev => ({
+      ...prev,
+      [commentId]: prev[commentId] === voteType ? null : voteType
+    }));
   };
 
   const renderComment = (comment: Comment, level = 0) => {
     const maxLevel = 3;
-    const indentClass = level > 0 ? `ml-${Math.min(level * 4, 12)}` : '';
     const canParticipate = currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) && event?.isActive;
     
     return (
-      <div key={comment.id} className={`${indentClass} mb-4`}>
-        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <div className="flex items-center gap-2 mb-2">
-            {comment.author.avatar ? (
-              <img
-                src={comment.author.avatar}
-                alt={comment.author.name || 'User'}
-                className="w-6 h-6 rounded-full"
-              />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
-                {(comment.author.name || comment.author.email)[0].toUpperCase()}
-              </div>
-            )}
-            <span className="font-medium text-sm text-gray-900">
-              {comment.author.name || comment.author.email}
-            </span>
-            <span className="text-xs text-gray-500">
-              {formatDate(comment.createdAt)}
-            </span>
-          </div>
-          <p className="text-sm text-gray-700 mb-2 leading-relaxed">{comment.content}</p>
-          
-          {/* Reply Button - Only show for participants and within max level */}
-          {canParticipate && level < maxLevel && !showReplyForm[comment.id] && (
+      <div key={comment.id} className="mb-4">
+        <div className="flex space-x-3">
+          <div className="flex flex-col items-center space-y-1">
             <Button
-              variant="ghost"
+              variant={commentVotes[comment.id] === 'up' ? "default" : "ghost"}
               size="sm"
-              onClick={() => setShowReplyForm(prev => ({ ...prev, [comment.id]: true }))}
-              className="text-xs text-blue-600 hover:text-blue-700 p-1 h-auto hover:bg-blue-50"
+              onClick={() => handleVote(comment.id, 'up')}
+              className={commentVotes[comment.id] === 'up' ? "bg-orange-500 hover:bg-orange-600 text-white" : "text-gray-300 hover:bg-white/10"}
             >
-              <Reply className="w-3 h-3 mr-1" />
-              Reply
+              <ChevronUp className="w-4 h-4" />
             </Button>
-          )}
-        </div>
+            <span className="text-xs font-medium text-gray-300">0</span>
+            <Button
+              variant={commentVotes[comment.id] === 'down' ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleVote(comment.id, 'down')}
+              className={commentVotes[comment.id] === 'down' ? "bg-blue-500 hover:bg-blue-600 text-white" : "text-gray-300 hover:bg-white/10"}
+            >
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          </div>
 
-        {/* Reply Form */}
-        {showReplyForm[comment.id] && (
-          <div className={`${indentClass} mt-3`}>
-            <div className="bg-white border rounded-lg p-3">
-              <div className="space-y-2">
-                <div className="flex items-start gap-2">
-                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                    U
-                  </div>
-                  <Textarea
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center space-x-2">
+              <span className="font-medium text-white">u/{comment.author.name || comment.author.email}</span>
+              <span className="text-xs text-gray-400">{formatShortDate(comment.createdAt)}</span>
+            </div>
+            
+            <p className="text-gray-300 leading-relaxed">{comment.content}</p>
+            
+            <div className="flex items-center space-x-4 text-xs text-gray-400">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowReplyForm(prev => ({ ...prev, [comment.id]: !prev[comment.id] }))}
+                className="text-gray-300 hover:bg-white/10"
+              >
+                Reply
+              </Button>
+              <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-white/10">Share</Button>
+              <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-white/10">Report</Button>
+            </div>
+
+            {/* Reply Form */}
+            {showReplyForm[comment.id] && canParticipate && level < maxLevel && (
+              <div className="mt-4 ml-6 border-l-2 border-gray-600 pl-4">
+                <div className="flex space-x-2">
+                  <textarea
                     value={commentContent[comment.id] || ''}
                     onChange={(e) => setCommentContent(prev => ({ ...prev, [comment.id]: e.target.value }))}
                     placeholder="Write a reply..."
                     rows={2}
-                    className="text-sm flex-1 resize-none"
+                    className="flex-1 p-2 bg-gray-800/50 border border-gray-600 text-white placeholder:text-gray-400 rounded-lg resize-none focus:outline-none focus:ring-0 focus:border-gray-600"
                   />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    onClick={() => handleCreateReply(comment.id)}
-                    disabled={isCreatingComment[comment.id] || !commentContent[comment.id]?.trim()}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                  >
-                    {isCreatingComment[comment.id] ? 'Replying...' : 'Reply'}
-                  </Button>
-                  <Button
-                    onClick={() => handleCancelComment(comment.id, 'reply')}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    disabled={isCreatingComment[comment.id]}
-                  >
-                    <X className="w-3 h-3 mr-1" />
-                    Cancel
-                  </Button>
+                  <div className="flex flex-col space-y-2">
+                    <Button
+                      onClick={() => handleCreateReply(comment.id)}
+                      disabled={!commentContent[comment.id]?.trim() || isCreatingComment[comment.id]}
+                      size="sm"
+                      className="bg-[#E94042] hover:bg-[#E94042]/90"
+                    >
+                      {isCreatingComment[comment.id] ? 'Posting...' : 'Reply'}
+                    </Button>
+                    <Button
+                      onClick={() => handleCancelComment(comment.id, 'reply')}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-600 text-gray-300 hover:bg-white/10"
+                      disabled={isCreatingComment[comment.id]}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Nested Replies */}
+            {comment.replies && comment.replies.length > 0 && level < maxLevel && (
+              <div className="mt-4 ml-6 border-l-2 border-gray-600 pl-4 space-y-4">
+                {comment.replies.map((reply) => renderComment(reply, level + 1))}
+              </div>
+            )}
           </div>
-        )}
-        
-        {comment.replies && comment.replies.length > 0 && level < maxLevel && (
-          <div className="mt-2">
-            {comment.replies.map((reply) => renderComment(reply, level + 1))}
-          </div>
-        )}
-        
-        {comment.replies && comment.replies.length > 0 && level >= maxLevel && (
-          <div className="mt-2 ml-4">
-            <Button variant="outline" size="sm" className="text-xs text-blue-600 hover:text-blue-700">
-              <MessageCircle className="w-3 h-3 mr-1" />
-              View {comment.replies.length} more replies
-            </Button>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading event details...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#161616] flex items-center justify-center relative overflow-hidden">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: `url('/Avalink.webp')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundAttachment: 'fixed'
+          }}
+        />
+        <div className="fixed inset-0 bg-black/60" />
+        
+        <Card className="w-96 text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl relative z-10">
+          <CardContent className="pt-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#E94042] border-t-transparent mx-auto mb-4"></div>
+            <p className="text-gray-300">Loading event...</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center">
-            <p className="text-red-600 text-lg">{error}</p>
-            <Button onClick={fetchEventDetail} className="mt-4">
-              Try Again
+      <div className="min-h-screen bg-[#161616] flex items-center justify-center relative overflow-hidden">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: `url('/Avalink.webp')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundAttachment: 'fixed'
+          }}
+        />
+        <div className="fixed inset-0 bg-black/60" />
+        
+        <Card className="w-96 text-center bg-white/5 backdrop-blur-md border border-white shadow-xl relative z-10">
+          <CardContent className="pt-6">
+            <h1 className="text-2xl font-semibold mb-4 text-red-400">Error</h1>
+            <p className="text-gray-300 mb-4">{error}</p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/explore'}
+              className="inline-flex items-center space-x-2 border-gray-600 text-gray-300"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Events</span>
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center">
-            <p className="text-gray-500 text-lg">Event not found</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#161616] flex items-center justify-center relative overflow-hidden">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: `url('/Avalink.webp')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundAttachment: 'fixed'
+          }}
+        />
+        <div className="fixed inset-0 bg-black/60" />
+        
+        <Card className="w-96 text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl relative z-10">
+          <CardContent className="pt-6">
+            <h1 className="text-2xl font-semibold mb-4 text-white">Event not found</h1>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/explore'}
+              className="inline-flex items-center space-x-2 border-gray-600 text-gray-300 hover:bg-white/10"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Events</span>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto">
-        {/* Event Header */}
-        <div className="bg-white border-b">
-          {event.thumbnail && (
-            <div className="h-48 w-full overflow-hidden">
-              <img
-                src={event.thumbnail}
-                alt={event.title}
-                className="w-full h-full object-cover"
-              />
+    <div className="min-h-screen bg-[#161616] relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-50"
+        style={{
+          backgroundImage: `url('/Avalink.webp')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundAttachment: 'fixed'
+        }}
+      />
+      
+      {/* Dark overlay */}
+      <div className="fixed inset-0 bg-black/60" />
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-700">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="flex items-center justify-between h-16">
+            <Button 
+              variant="ghost" 
+              onClick={() => window.location.href = '/explore'}
+              className="inline-flex items-center space-x-2 text-white hover:bg-white hover:text-black"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Events</span>
+            </Button>
+            
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant={isBookmarked ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsBookmarked(!isBookmarked)}
+                className={isBookmarked ? "bg-[#E94042] hover:bg-[#E94042]/90" : "border-gray-600 text-gray-300 hover:bg-white/10"}
+              >
+                <Bookmark className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-white/10">
+                <Share2 className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-white/10">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
             </div>
-          )}
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Event Card */}
+            <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300 overflow-hidden p-0">
+              {/* Event Image */}
+              {event.thumbnail && (
+                <div className="relative h-64 sm:h-80">
+                  <img
+                    src={event.thumbnail}
+                    alt={event.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/api/placeholder/400/250';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <Badge className="absolute top-4 right-4 bg-[#E94042] text-white">
+                    Event
+                  </Badge>
                   {event.verified && (
-                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
+                    <Badge className="absolute top-4 left-4 bg-yellow-500 text-white">
+                      <Star className="w-3 h-3 mr-1 fill-current" />
+                      Verified
+                    </Badge>
                   )}
                 </div>
-                {event.description && (
-                  <p className="text-gray-600 mb-4">{event.description}</p>
-                )}
-                
-                {/* Event Stats */}
-                <div className="flex items-center gap-6 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    <span>{event._count.participants} participants</span>
+              )}
+
+              <CardContent className="p-6 space-y-6">
+                {/* Event Header */}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    {event.creator.avatar ? (
+                      <img
+                        src={event.creator.avatar}
+                        alt={event.creator.name || 'Host'}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-[#E94042] rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">
+                          {(event.creator.name || event.creator.email)[0].toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 text-sm text-gray-400">
+                        <span className="font-medium text-white">r/Events</span>
+                        <span>•</span>
+                        <span>Posted by u/{event.creator.name || event.creator.email}</span>
+                        <span>•</span>
+                        <span>{formatShortDate(event.createdAt)}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <FileText className="w-4 h-4" />
-                    <span>{event._count.posts} posts</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-4 h-4" />
-                    <span>{event._count.userLikes} likes</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>Created {formatDate(event.createdAt)}</span>
-                  </div>
+
+                  <h1 className="text-3xl font-bold leading-tight text-white">{event.title}</h1>
+                  {event.description && (
+                    <p className="text-gray-300 leading-relaxed text-lg">{event.description}</p>
+                  )}
                 </div>
 
-                {/* Event Details */}
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    <span className="font-medium">Host:</span> {event.creator.name || event.creator.email}
-                  </span>
+                {/* Event Details Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <Card className="p-4 bg-white/10 backdrop-blur-sm border border-white/20">
+                    <div className="flex items-center space-x-2 text-gray-400 mb-2">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase tracking-wide">Date</span>
+                    </div>
+                    <div className="text-sm font-semibold text-white">{formatDate(event.createdAt)}</div>
+                  </Card>
+
+                  <Card className="p-4 bg-white/10 backdrop-blur-sm border border-white/20">
+                    <div className="flex items-center space-x-2 text-gray-400 mb-2">
+                      <Users className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase tracking-wide">Attendees</span>
+                    </div>
+                    <div className="text-sm font-semibold text-white">
+                      {event._count.participants}
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-white/10 backdrop-blur-sm border border-white/20">
+                    <div className="flex items-center space-x-2 text-gray-400 mb-2">
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase tracking-wide">Posts</span>
+                    </div>
+                    <div className="text-sm font-semibold text-white">{event._count.posts}</div>
+                  </Card>
+
                   {event.prize && (
-                    <span className="flex items-center gap-1">
-                      <Trophy className="w-4 h-4" />
-                      <span className="font-medium">Prize:</span> {event.prize}
-                    </span>
-                  )}
-                  {event.winner && (
-                    <span className="flex items-center gap-1">
-                      <Star className="w-4 h-4" />
-                      <span className="font-medium">Winner:</span> {event.winner.name || event.winner.email}
-                    </span>
+                    <Card className="p-4 bg-[#E94042] text-white">
+                      <div className="flex items-center space-x-2 text-gray-200 mb-2">
+                        <Trophy className="w-4 h-4" />
+                        <span className="text-xs font-medium uppercase tracking-wide">Prize</span>
+                      </div>
+                      <div className="text-sm font-semibold">{event.prize}</div>
+                    </Card>
                   )}
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 text-sm rounded-full font-medium ${
-                  event.isActive 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {event.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-            </div>
 
-            {/* Action Buttons */}
-            {currentUserId && (
-              <div className="flex items-center gap-3 pt-4 border-t">
-                {isEventHost(currentUserId) ? (
-                  <Button disabled className="bg-gray-100 text-gray-500" size="sm">
-                    <User className="w-4 h-4 mr-2" />
-                    Event Host
-                  </Button>
-                ) : isUserParticipant(currentUserId) ? (
-                  <Button disabled className="bg-green-100 text-green-700" size="sm">
-                    <Users className="w-4 h-4 mr-2" />
-                    Joined
-                  </Button>
-                ) : !event.isActive ? (
-                  <Button disabled className="bg-gray-100 text-gray-500" size="sm">
-                    Event Inactive
-                  </Button>
-                ) : new Date() > new Date(event.endDate) ? (
-                  <Button disabled className="bg-gray-100 text-gray-500" size="sm">
-                    <Clock className="w-4 h-4 mr-2" />
-                    Event Ended
-                  </Button>
-                ) : (
+                {/* Actions */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-600">
+                  <div className="flex items-center space-x-4">
+                    <Button variant="ghost" size="sm" className="space-x-2 text-gray-300 hover:bg-white/10">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{event._count.posts}</span>
+                    </Button>
+
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLikeEvent}
+                      disabled={isLiking[event.id]}
+                      className={`space-x-2 ${
+                        userLikes[event.id] 
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                          : 'text-gray-300 hover:bg-white/10'
+                      }`}
+                    >
+                      <Heart className={`w-4 h-4 ${userLikes[event.id] ? 'fill-current' : ''}`} />
+                      <span>{event._count.userLikes}</span>
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    {currentUserId && (
+                      <>
+                        {isEventHost(currentUserId) ? (
+                          <Button disabled className="bg-gray-500 text-white" size="sm">
+                            <User className="w-4 h-4 mr-2" />
+                            Event Host
+                          </Button>
+                        ) : isUserParticipant(currentUserId) ? (
+                          <Button disabled className="bg-green-500 text-white" size="sm">
+                            <Users className="w-4 h-4 mr-2" />
+                            Joined
+                          </Button>
+                        ) : !event.isActive ? (
+                          <Button disabled className="bg-gray-500 text-white" size="sm">
+                            Event Inactive
+                          </Button>
+                        ) : new Date() > new Date(event.endDate) ? (
+                          <Button disabled className="bg-gray-500 text-white" size="sm">
+                            <Clock className="w-4 h-4 mr-2" />
+                            Event Ended
+                          </Button>
+                        ) : (
+                          <Button 
+                            onClick={handleJoinEvent}
+                            disabled={isJoining}
+                            className="bg-[#E94042] hover:bg-[#E94042]/90 text-white"
+                            size="sm"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            {isJoining ? 'Joining...' : 'Join Event'}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Create Post Form */}
+            {showPostForm && (
+              <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+                <CardContent className="p-4">
+                  <div className="flex space-x-3">
+                    <div className="w-8 h-8 bg-[#E94042] rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">U</span>
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <textarea
+                        value={postContent}
+                        onChange={(e) => setPostContent(e.target.value)}
+                        placeholder="Share your progress, ideas, or questions..."
+                        rows={4}
+                        className="w-full p-3 bg-gray-800/50 border border-gray-600 text-white placeholder:text-gray-400 rounded-lg resize-none focus:outline-none focus:ring-0 focus:border-gray-600"
+                      />
+                      
+                      <div className="space-y-2">
+                        <Label className="text-white">Image (Optional)</Label>
+                        <UploadImage 
+                          onImageUploaded={handleImageUploaded}
+                          currentImage={postImage}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="space-x-2 text-gray-300 hover:text-black hover:bg-white"
+                            disabled={isCreatingPost}
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                            <span>Add Image</span>
+                          </Button>
+                          {isCreatingPost && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600"></div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleCreatePost}
+                            disabled={isCreatingPost || !postContent.trim()}
+                            className="space-x-2 bg-[#E94042] hover:bg-[#E94042]/90 text-white"
+                          >
+                            <Send className="w-4 h-4" />
+                            <span>{isCreatingPost ? 'Posting...' : 'Post'}</span>
+                          </Button>
+                          <Button
+                            onClick={handleCancelPost}
+                            variant="outline"
+                            disabled={isCreatingPost}
+                            className="border-gray-600 text-gray-300 hover:bg-white/10"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Posts */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Posts & Discussions ({event._count.posts})</h3>
+                {/* Create Post Button - Only for participants */}
+                {currentUserId && isUserParticipant(currentUserId) && event.isActive && (
                   <Button 
-                    onClick={handleJoinEvent}
-                    disabled={isJoining}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowPostForm(true)}
+                    className="bg-[#E94042] hover:bg-[#E94042]/90 text-white"
                     size="sm"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {isJoining ? 'Joining...' : 'Join Event'}
+                    Create Post
                   </Button>
                 )}
-                
-                <Button
-                  onClick={handleLikeEvent}
-                  disabled={isLiking[event.id]}
-                  variant={userLikes[event.id] ? "default" : "outline"}
-                  size="sm"
-                  className={`${
-                    userLikes[event.id] 
-                      ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
-                      : 'border-red-500 text-red-500 hover:bg-red-50'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 mr-1 ${userLikes[event.id] ? 'fill-current' : ''}`} />
-                  {isLiking[event.id] ? 'Updating...' : `${event._count.userLikes}`}
-                </Button>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Posts and Comments */}
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between bg-white rounded-lg p-4 border">
-            <h2 className="text-xl font-semibold text-gray-900">Posts & Discussions</h2>
-            {/* Create Post Button - Only for participants */}
-            {currentUserId && isUserParticipant(currentUserId) && event.isActive && (
-              <Button 
-                onClick={() => setShowPostForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Post
-              </Button>
-            )}
-          </div>
-
-          {/* Create Post Form */}
-          {showPostForm && (
-            <div className="bg-white rounded-lg border">
-              <div className="p-4 border-b">
-                <h3 className="text-lg font-medium">Create New Post</h3>
-              </div>
-              <div className="p-4">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="postContent">Content *</Label>
-                    <Textarea
-                      id="postContent"
-                      value={postContent}
-                      onChange={(e) => setPostContent(e.target.value)}
-                      placeholder="Share your progress, ideas, or questions..."
-                      rows={4}
-                      className="w-full resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Image (Optional)</Label>
-                    <UploadImage 
-                      onImageUploaded={handleImageUploaded}
-                      currentImage={postImage}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <Button
-                      onClick={handleCreatePost}
-                      disabled={isCreatingPost || !postContent.trim()}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      size="sm"
-                    >
-                      {isCreatingPost ? 'Posting...' : 'Post'}
-                    </Button>
-                    <Button
-                      onClick={handleCancelPost}
-                      variant="outline"
-                      disabled={isCreatingPost}
-                      size="sm"
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {event.posts.length === 0 ? (
-            <div className="bg-white rounded-lg border p-12 text-center">
-              <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No posts yet</p>
-              <p className="text-gray-400 text-sm">Be the first to start a discussion!</p>
-            </div>
-          ) : (
-            event.posts.map((post) => (
-              <div key={post.id} className="bg-white rounded-lg border">
-                {/* Post Header */}
-                <div className="p-4 border-b bg-gray-50 rounded-t-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {post.author.avatar ? (
-                        <img
-                          src={post.author.avatar}
-                          alt={post.author.name || 'User'}
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
-                          {(post.author.name || post.author.email)[0].toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex flex-col">
-                        <span className="font-medium text-gray-900 text-sm">
-                          {post.author.name || post.author.email}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(post.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Post Actions */}
-                    <div className="flex items-center gap-2">
-                      {/* Upvote Button */}
-                      {currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) ? (
-                        <Button
-                          onClick={() => handleUpvotePost(post.id)}
-                          disabled={isUpvoting[post.id]}
-                          variant="ghost"
-                          size="sm"
-                          className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${
-                            userUpvotes[post.id] 
-                              ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
-                              : 'text-gray-500 hover:bg-gray-100'
-                          }`}
-                        >
-                          {isUpvoting[post.id] ? (
-                            <>
+              
+              {event.posts.length === 0 ? (
+                <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl p-12 text-center">
+                  <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-300 text-lg">No posts yet</p>
+                  <p className="text-gray-400 text-sm">Be the first to start a discussion!</p>
+                </Card>
+              ) : (
+                event.posts.map((post) => (
+                  <Card key={post.id} className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+                    <CardContent className="p-4">
+                      <div className="flex space-x-3">
+                        <div className="flex flex-col items-center space-y-1">
+                          <Button
+                            variant={userUpvotes[post.id] ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => handleUpvotePost(post.id)}
+                            disabled={!currentUserId || isUpvoting[post.id]}
+                            className={userUpvotes[post.id] ? "bg-orange-500 hover:bg-orange-600 text-white" : "text-gray-300 hover:bg-white/10"}
+                          >
+                            {isUpvoting[post.id] ? (
                               <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                              <span className="text-sm">{post._count.userUpvotes}</span>
-                            </>
-                          ) : (
-                            <>
+                            ) : (
                               <ArrowUp className={`w-4 h-4 ${userUpvotes[post.id] ? 'fill-current' : ''}`} />
-                              <span className="text-sm font-medium">{post._count.userUpvotes}</span>
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-1 px-3 py-1 text-gray-500">
-                          <ArrowUp className="w-4 h-4" />
-                          <span className="text-sm">{post._count.userUpvotes}</span>
+                            )}
+                          </Button>
+                          <span className="text-xs font-medium text-gray-300">{post._count.userUpvotes}</span>
+                          <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-white/10">
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-1 px-3 py-1 text-gray-500">
-                        <MessageCircle className="w-4 h-4" />
-                        <span className="text-sm">{post._count.comments}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Post Content */}
-                <div className="p-4">
-                  <p className="text-gray-800 mb-4 leading-relaxed">{post.content}</p>
-                  
-                  {post.image && (
-                    <div className="mb-4">
-                      <img
-                        src={post.image}
-                        alt="Post image"
-                        className="max-w-full h-auto rounded-lg border"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Comments Section */}
-                  {post.comments.length > 0 && (
-                    <div className="mt-6 pt-4 border-t">
-                      <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-                        <MessageCircle className="w-4 h-4" />
-                        Comments
-                      </h4>
-                      <div className="space-y-3">
-                        {post.comments.map((comment) => renderComment(comment))}
-                      </div>
-                    </div>
-                  )}
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-white">u/{post.author.name || post.author.email}</span>
+                            <span className="text-xs text-gray-400">{formatShortDate(post.createdAt)}</span>
+                          </div>
+                          
+                          <p className="text-gray-300 leading-relaxed">{post.content}</p>
+                          
+                          {/* Post Image */}
+                          {post.image && (
+                            <div className="mt-3">
+                              <img 
+                                src={post.image} 
+                                alt="Post attachment" 
+                                className="max-w-md h-auto rounded-lg border border-gray-600"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center space-x-4 text-xs text-gray-400">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setShowCommentForm(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                              className="text-gray-300 hover:bg-white/10"
+                            >
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              {post._count.comments} Comments
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-white/10">Share</Button>
+                            <Button variant="ghost" size="sm" className="text-gray-300 hover:bg-white/10">Save</Button>
+                          </div>
 
-                  {/* Comment Form */}
-                  {currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) && event.isActive && (
-                    <div className="mt-6 pt-4 border-t">
-                      {!showCommentForm[post.id] ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowCommentForm(prev => ({ ...prev, [post.id]: true }))}
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        >
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          Add Comment
-                        </Button>
-                      ) : (
-                        <div className="bg-gray-50 rounded-lg p-3 border">
-                          <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                              {currentUserId && event.participants.find(p => p.id === currentUserId)?.avatar ? (
-                                <img
-                                  src={event.participants.find(p => p.id === currentUserId)?.avatar}
-                                  alt="Your avatar"
-                                  className="w-8 h-8 rounded-full flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                                  U
-                                </div>
-                              )}
-                              <div className="flex-1">
-                                <Textarea
+                          {/* Comments */}
+                          {post.comments.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-600 space-y-4">
+                              {post.comments.map((comment) => renderComment(comment))}
+                            </div>
+                          )}
+
+                          {/* Comment Form */}
+                          {showCommentForm[post.id] && currentUserId && (
+                            <div className="mt-4 ml-6 border-l-2 border-gray-600 pl-4">
+                              <div className="flex space-x-2">
+                                <textarea
                                   value={commentContent[post.id] || ''}
                                   onChange={(e) => setCommentContent(prev => ({ ...prev, [post.id]: e.target.value }))}
                                   placeholder="Write a comment..."
-                                  rows={3}
-                                  className="text-sm resize-none"
+                                  rows={2}
+                                  className="flex-1 p-2 bg-gray-800/50 border border-gray-600 text-white placeholder:text-gray-400 rounded-lg resize-none focus:outline-none focus:ring-0 focus:border-gray-600"
                                 />
+                                <div className="flex flex-col space-y-2">
+                                  <Button
+                                    onClick={() => handleCreateComment(post.id)}
+                                    disabled={!commentContent[post.id]?.trim() || isCreatingComment[post.id]}
+                                    size="sm"
+                                    className="bg-[#E94042] hover:bg-[#E94042]/90"
+                                  >
+                                    {isCreatingComment[post.id] ? 'Posting...' : 'Comment'}
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleCancelComment(post.id, 'comment')}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-gray-600 text-gray-300 hover:bg-white/10"
+                                    disabled={isCreatingComment[post.id]}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                onClick={() => handleCreateComment(post.id)}
-                                disabled={isCreatingComment[post.id] || !commentContent[post.id]?.trim()}
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                {isCreatingComment[post.id] ? 'Posting...' : 'Comment'}
-                              </Button>
-                              <Button
-                                onClick={() => handleCancelComment(post.id, 'comment')}
-                                variant="outline"
-                                size="sm"
-                                disabled={isCreatingComment[post.id]}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-white">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {currentUserId && (
+                  <>
+                    {isEventHost(currentUserId) ? (
+                      <Button disabled className="w-full bg-gray-500 text-white" size="lg">
+                        <User className="w-4 h-4 mr-2" />
+                        Event Host
+                      </Button>
+                    ) : isUserParticipant(currentUserId) ? (
+                      <Button disabled className="w-full bg-green-500 text-white" size="lg">
+                        <Users className="w-4 h-4 mr-2" />
+                        Already Joined
+                      </Button>
+                    ) : !event.isActive ? (
+                      <Button disabled className="w-full bg-gray-500 text-white" size="lg">
+                        Event Inactive
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleJoinEvent} 
+                        disabled={isJoining}
+                        className="w-full bg-[#E94042] hover:bg-[#E94042]/90 text-white"
+                        size="lg"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {isJoining ? 'Joining...' : 'Join Event'}
+                      </Button>
+                    )}
+                  </>
+                )}
+                
+                <div className="text-xs text-gray-400 text-center">
+                  Join to participate in discussions and win prizes
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Event Information */}
+            <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-white">Event Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Created</span>
+                  <span className="font-medium text-sm text-white">{formatShortDate(event.createdAt)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Participants</span>
+                  <span className="font-medium text-sm text-white">{event._count.participants}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Posts</span>
+                  <span className="font-medium text-sm text-white">{event._count.posts}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Likes</span>
+                  <span className="font-medium text-sm text-white">{event._count.userLikes}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Status</span>
+                  <Badge className={event.isActive ? "bg-green-500 text-white" : "bg-gray-500 text-white"}>
+                    {event.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {event.prize && (
+                  <>
+                    <div className="border-t border-gray-600 pt-4 mt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Prize</span>
+                        <span className="font-semibold text-white">{event.prize}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Event Host */}
+            <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-white">Event Host</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  {event.creator.avatar ? (
+                    <img
+                      src={event.creator.avatar}
+                      alt={event.creator.name || 'Host'}
+                      className="w-12 h-12 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-[#E94042] rounded-full flex items-center justify-center">
+                      <span className="text-white font-medium">
+                        {(event.creator.name || event.creator.email)[0].toUpperCase()}
+                      </span>
                     </div>
                   )}
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-white">u/{event.creator.name || event.creator.email}</span>
+                    <div className="text-xs text-gray-400">
+                      Event Creator
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
+                {event.verified && (
+                  <div className="flex items-center space-x-2 text-yellow-500">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span className="text-sm">Verified Event</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Participants */}
+            {event.participants.length > 0 && (
+              <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="text-white">Recent Participants</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {event.participants.slice(0, 5).map((participant) => (
+                    <div key={participant.id} className="flex items-center space-x-3">
+                      {participant.avatar ? (
+                        <img
+                          src={participant.avatar}
+                          alt={participant.name || 'Participant'}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-[#E94042] rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-medium">
+                            {(participant.name || participant.email)[0].toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-white">u/{participant.name || participant.email}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {event.participants.length > 5 && (
+                    <div className="text-xs text-gray-400 pt-2 border-t border-gray-600">
+                      +{event.participants.length - 5} more participants
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Winner Card */}
+            {event.winner && (
+              <Card className="bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 backdrop-blur-md border border-yellow-500/30 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="text-yellow-400 flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Winner
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-3">
+                    {event.winner.avatar ? (
+                      <img
+                        src={event.winner.avatar}
+                        alt={event.winner.name || 'Winner'}
+                        className="w-12 h-12 rounded-full border-2 border-yellow-500"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
+                        <span className="text-white font-bold">
+                          {(event.winner.name || event.winner.email)[0].toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-white font-medium">u/{event.winner.name || event.winner.email}</div>
+                      <div className="text-yellow-400 text-sm">🎉 Event Winner!</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
+      </main>
+
+      {/* Floating Action Button for Mobile */}
+      <div className="fixed bottom-6 right-6 lg:hidden">
+        <Button
+          onClick={() => currentUserId && isUserParticipant(currentUserId) && event.isActive && setShowPostForm(true)}
+          className="h-14 w-14 rounded-full bg-[#E94042] hover:bg-[#E94042]/90 shadow-lg"
+          size="lg"
+          disabled={!currentUserId || !isUserParticipant(currentUserId) || !event.isActive}
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
       </div>
     </div>
   );
