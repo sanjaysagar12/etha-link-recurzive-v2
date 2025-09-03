@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import UploadImage from "@/components/UploadImage";
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +25,13 @@ export default function CreateEventPage() {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleImageUploaded = (imageUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      thumbnail: imageUrl
     }));
   };
 
@@ -121,16 +129,16 @@ export default function CreateEventPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="thumbnail">Thumbnail URL</Label>
-                <Input
-                  id="thumbnail"
-                  name="thumbnail"
-                  type="url"
-                  value={formData.thumbnail}
-                  onChange={handleInputChange}
-                  placeholder="Enter thumbnail image URL"
-                  className="w-full"
+                <Label>Event Thumbnail</Label>
+                <UploadImage 
+                  onImageUploaded={handleImageUploaded}
+                  currentImage={formData.thumbnail}
                 />
+                {formData.thumbnail && (
+                  <p className="text-sm text-gray-500">
+                    Image uploaded successfully!
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
