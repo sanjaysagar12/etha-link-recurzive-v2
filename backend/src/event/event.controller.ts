@@ -46,6 +46,19 @@ export class EventController {
         };
     }
 
+    @Get('explore')
+    @UseGuards(OptionalJwtGuard)
+    async explorePosts(
+        @GetOptionalUser('sub') userId?: string,
+    ) {
+        this.logger.log(`Fetching explore posts ${userId ? `for user ${userId}` : 'for anonymous user'}`);
+        const data = await this.eventService.getExplorePosts(userId);
+        return {
+            status: 'success',
+            data: data,
+        };
+    }
+
     @Get(':id')
     @UseGuards(OptionalJwtGuard)
     async getEventById(

@@ -82,6 +82,142 @@ export class EventService {
         });
     }
 
+    async getExplorePosts(userId?: string) {
+        return await this.prisma.post.findMany({
+            select: {
+                id: true,
+                content: true,
+                image: true,
+                upvotes: true,
+                createdAt: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        thumbnail: true,
+                        verified: true,
+                        isActive: true,
+                        creator: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                    },
+                },
+                comments: {
+                    where: {
+                        parentId: null, // Only top-level comments
+                    },
+                    select: {
+                        id: true,
+                        content: true,
+                        createdAt: true,
+                        author: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                                avatar: true,
+                            },
+                        },
+                        replies: {
+                            select: {
+                                id: true,
+                                content: true,
+                                createdAt: true,
+                                author: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        avatar: true,
+                                    },
+                                },
+                                replies: {
+                                    select: {
+                                        id: true,
+                                        content: true,
+                                        createdAt: true,
+                                        author: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                email: true,
+                                                avatar: true,
+                                            },
+                                        },
+                                    },
+                                    orderBy: {
+                                        createdAt: 'asc',
+                                    },
+                                },
+                            },
+                            orderBy: {
+                                createdAt: 'asc',
+                            },
+                        },
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                    take: 3, // Limit to first 3 comments for explore feed
+                },
+                _count: {
+                    select: {
+                        comments: true,
+                        userUpvotes: true,
+                    },
+                },
+                userUpvotes: userId ? {
+                    where: {
+                        userId: userId,
+                    },
+                    select: {
+                        id: true,
+                    },
+                } : false,
+            },
+            where: {
+                event: {
+                    isActive: true, // Only show posts from active events
+                },
+            },
+            orderBy: [
+                {
+                    createdAt: 'desc',
+                },
+                {
+                    userUpvotes: {
+                        _count: 'desc', // Secondary sort by upvote count
+                    },
+                },
+            ],
+            take: 20, // Limit to 20 posts for pagination
+        }).then(posts => {
+            // Transform the data to include user interaction flags
+            const transformedPosts = posts.map(post => ({
+                ...post,
+                isUpvotedByUser: userId ? post.userUpvotes.length > 0 : false,
+                userUpvotes: undefined, // Remove the raw userUpvotes data
+            }));
+
+            return transformedPosts;
+        }).catch(error => {
+            console.error('Error fetching explore posts:', error);
+            throw new Error('Failed to fetch explore posts');
+        });
+    }
+
     async getEventById(eventId: string, userId?: string) {
         return await this.prisma.event.findUnique({
             where: {
