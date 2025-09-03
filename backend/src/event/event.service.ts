@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEventDto, CreatePostDto, CreateCommentDto } from './dto';
 
 @Injectable()
 export class EventService {
+    private readonly logger = new Logger(EventService.name);
+
     constructor(private prisma: PrismaService) {}
     
     async createEvent(userId: string, createEventDto: CreateEventDto) {
@@ -973,4 +975,122 @@ export class EventService {
             throw new Error('Failed to remove upvote');
         });
     }
+
+    /**
+   * Verify an event (Admin only)
+   */
+  async verifyEvent(eventId: string, adminId: string) {
+    try {
+      // Check if event exists
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true
+            }
+          }
+        }
+      });
+
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      // Update event verification status
+      const updatedEvent = await this.prisma.event.update({
+        where: { id: eventId },
+        data: { 
+          verified: true,
+          updatedAt: new Date()
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true
+            }
+          },
+          _count: {
+            select: {
+              participants: true,
+              posts: true,
+              userLikes: true
+            }
+          }
+        }
+      });
+
+      this.logger.log(`Event ${eventId} verified by admin ${adminId}`);
+      
+      return updatedEvent;
+    } catch (error) {
+      this.logger.error(`Failed to verify event ${eventId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove verification from an event (Admin only)
+   */
+  async unverifyEvent(eventId: string, adminId: string) {
+    try {
+      // Check if event exists
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true
+            }
+          }
+        }
+      });
+
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      // Update event verification status
+      const updatedEvent = await this.prisma.event.update({
+        where: { id: eventId },
+        data: { 
+          verified: false,
+          updatedAt: new Date()
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true
+            }
+          },
+          _count: {
+            select: {
+              participants: true,
+              posts: true,
+              userLikes: true
+            }
+          }
+        }
+      });
+
+      this.logger.log(`Event ${eventId} unverified by admin ${adminId}`);
+      
+      return updatedEvent;
+    } catch (error) {
+      this.logger.error(`Failed to unverify event ${eventId}:`, error);
+      throw error;
+    }
+  }
 }

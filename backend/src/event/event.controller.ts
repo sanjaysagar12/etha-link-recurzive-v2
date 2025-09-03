@@ -203,4 +203,36 @@ export class EventController {
             message: 'Upvote removed successfully',
         };
     }
+
+    @Patch(':id/verify')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER)
+    async verifyEvent(
+        @Param('id') eventId: string,
+        @GetUser('sub') adminId: string,
+    ) {
+        this.logger.log(`Admin ${adminId} attempting to verify event ${eventId}`);
+        const data = await this.eventService.verifyEvent(eventId, adminId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Event verified successfully',
+        };
+    }
+
+    @Patch(':id/unverify')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async unverifyEvent(
+        @Param('id') eventId: string,
+        @GetUser('sub') adminId: string,
+    ) {
+        this.logger.log(`Admin ${adminId} attempting to unverify event ${eventId}`);
+        const data = await this.eventService.unverifyEvent(eventId, adminId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Event unverified successfully',
+        };
+    }
 }
