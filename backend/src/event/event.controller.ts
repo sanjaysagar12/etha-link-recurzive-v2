@@ -7,13 +7,13 @@ import { EventService } from './event.service';
 import { CreateEventDto } from './dto';
 
 @Controller('api/event')
-@UseGuards(JwtGuard, RolesGuard)
 export class EventController {
     private readonly logger = new Logger(EventController.name);
     
     constructor(private readonly eventService: EventService) {}
 
     @Post()
+    @UseGuards(JwtGuard, RolesGuard)
     @Roles(Role.USER, Role.ADMIN)
     async createEvent(
         @GetUser('sub') userId: string,
@@ -28,7 +28,6 @@ export class EventController {
     }
 
     @Get()
-    @Roles(Role.USER, Role.ADMIN)
     async getAllEvents() {
         this.logger.log('Fetching all events');
         const data = await this.eventService.getAllEvents();
@@ -39,7 +38,6 @@ export class EventController {
     }
 
     @Get(':id')
-    @Roles(Role.USER, Role.ADMIN)
     async getEventById(@Param('id') eventId: string) {
         this.logger.log(`Fetching event details for ID: ${eventId}`);
         const data = await this.eventService.getEventById(eventId);
