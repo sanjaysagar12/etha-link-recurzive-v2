@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateEventDto } from './dto';
+import { CreateEventDto, CreatePostDto } from './dto';
 
 @Injectable()
 export class EventService {
@@ -307,6 +307,84 @@ export class EventService {
         }).catch(error => {
             console.error('Error joining event:', error);
             throw new Error('Failed to join event');
+        });
+    }
+
+    async createPost(eventId: string, userId: string, createPostDto: CreatePostDto) {
+        // First, check if the event exists and if user is a participant or creator
+        const event = await this.prisma.event.findUnique({
+            where: { id: eventId },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                    },
+                },
+                participants: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Check if event is active
+        if (!event.isActive) {
+            throw new Error('Cannot post to an inactive event');
+        }
+
+        // Check if user is either the creator or a participant
+        const isCreator = event.creator.id === userId;
+        const isParticipant = event.participants.some(participant => participant.id === userId);
+
+        if (!isCreator && !isParticipant) {
+            throw new Error('You must be a participant or creator to post in this event');
+        }
+
+        // Create the post
+        return await this.prisma.post.create({
+            data: {
+                content: createPostDto.content,
+                image: createPostDto.image,
+                eventId: eventId,
+                authorId: userId,
+            },
+            select: {
+                id: true,
+                content: true,
+                image: true,
+                upvotes: true,
+                createdAt: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    },
+                },
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        comments: true,
+                        userUpvotes: true,
+                    },
+                },
+            },
+        }).then(post => {
+            return post;
+        }).catch(error => {
+            console.error('Error creating post:', error);
+            throw new Error('Failed to create post');
         });
     }
 }

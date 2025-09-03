@@ -4,7 +4,7 @@ import { JwtGuard } from '../application/common/guards/jwt.guard';
 import { RolesGuard } from '../application/common/guards/roles.guard';
 import { GetUser } from 'src/application/common/decorator/get-user.decorator';
 import { EventService } from './event.service';
-import { CreateEventDto } from './dto';
+import { CreateEventDto, CreatePostDto } from './dto';
 
 @Controller('api/event')
 export class EventController {
@@ -60,6 +60,23 @@ export class EventController {
             status: 'success',
             data: data,
             message: 'Successfully joined the event',
+        };
+    }
+
+    @Post(':id/post')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async createPost(
+        @Param('id') eventId: string,
+        @GetUser('sub') userId: string,
+        @Body() createPostDto: CreatePostDto,
+    ) {
+        this.logger.log(`User ${userId} creating post for event ${eventId}`);
+        const data = await this.eventService.createPost(eventId, userId, createPostDto);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Post created successfully',
         };
     }
 }
