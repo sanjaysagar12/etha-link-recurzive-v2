@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { ETHERLINK_CONFIG, CONTRACT_ABI } from './etherlink.config';
 const { ethers } = require('ethers');
 
@@ -116,7 +117,7 @@ export class EtherlinkService {
   ];
 
 
-  constructor() {
+  constructor(private prisma: PrismaService) {
     try {
       // Use Sepolia RPC URLs (skip Infura/Alchemy that need API keys)
       const sepoliaRPCs = [
@@ -183,6 +184,27 @@ export class EtherlinkService {
     try {
       this.logger.log(`Distributing ${amountInEther} ETH from ${senderIdOrAddress} to ${recipientAddress}`);
 
+      // If senderIdOrAddress is a user ID, check and update their in-app wallet balance
+      let userWallet: any = null;
+      if (!senderIdOrAddress.startsWith('0x') || senderIdOrAddress.length !== 42) {
+        // It's a user ID, get their wallet
+        userWallet = await this.prisma.wallet.findUnique({
+          where: { userId: senderIdOrAddress }
+        });
+
+        if (!userWallet) {
+          throw new Error('User wallet not found');
+        }
+
+        // Check if user has sufficient available balance
+        const availableBalance = parseFloat(userWallet.balance);
+        const amountToSend = parseFloat(amountInEther);
+
+        if (availableBalance < amountToSend) {
+          throw new Error(`Insufficient balance. Available: ${availableBalance} ETH, Required: ${amountToSend} ETH`);
+        }
+      }
+
       // Resolve sender address (could be user ID or wallet address)
       const senderAddress = await this.resolveWalletAddress(senderIdOrAddress);
 
@@ -200,7 +222,37 @@ export class EtherlinkService {
         throw new Error(`Insufficient contract balance. Available: ${ethers.formatEther(contractBalance)} ETH`);
       }
 
-      // Call distributeFunds function
+      let transactionRecord: any = null;
+      
+      // First, handle database operations with shorter timeout
+      if (userWallet) {
+        transactionRecord = await this.prisma.$transaction(async (prisma) => {
+          // Update user's balance
+          const currentBalance = parseFloat(userWallet.balance);
+          const newBalance = currentBalance - parseFloat(amountInEther);
+
+          await prisma.wallet.update({
+            where: { userId: senderIdOrAddress },
+            data: { balance: newBalance.toString() }
+          });
+
+          // Create initial transaction record
+          return await prisma.transaction.create({
+            data: {
+              amount: amountInEther,
+              type: 'WITHDRAWAL',
+              status: 'PENDING',
+              description: `Withdrawal to external address: ${recipientAddress}`,
+              userId: senderIdOrAddress,
+              senderWalletId: userWallet.id,
+            }
+          });
+        }, {
+          timeout: 10000, // 10 seconds for database operations
+        });
+      }
+
+      // Now handle blockchain transaction (outside database transaction)
       const transaction = await this.contract.distributeFunds(recipientAddress, amountInWei);
       
       this.logger.log(`Transaction sent: ${transaction.hash}`);
@@ -232,7 +284,19 @@ export class EtherlinkService {
         this.logger.warn(`Could not get transaction receipt (likely due to free tier limitations): ${receiptError.message}`);
         this.logger.log(`Transaction ${transaction.hash} was sent successfully but confirmation pending`);
       }
-      
+
+      // Finally, update transaction record with blockchain details
+      if (transactionRecord) {
+        await this.prisma.transaction.update({
+          where: { id: transactionRecord.id },
+          data: {
+            txHash: transaction.hash,
+            status: status === 'confirmed' ? 'CONFIRMED' : 'PENDING',
+            confirmedAt: status === 'confirmed' ? new Date() : null,
+          }
+        });
+      }
+
       return {
         success: true,
         transactionHash: transaction.hash,
