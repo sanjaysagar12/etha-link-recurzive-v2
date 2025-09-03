@@ -2,11 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import UploadImage from "@/components/UploadImage";
+import { 
+  ArrowUp, 
+  MessageCircle, 
+  Heart, 
+  Calendar, 
+  Trophy, 
+  Users, 
+  FileText, 
+  Star,
+  Reply,
+  Plus,
+  X,
+  Clock,
+  User
+} from 'lucide-react';
 
 interface User {
   id: string;
@@ -469,7 +483,7 @@ export default function EventDetailPage() {
     
     return (
       <div key={comment.id} className={`${indentClass} mb-4`}>
-        <div className="bg-gray-50 rounded-lg p-3">
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
           <div className="flex items-center gap-2 mb-2">
             {comment.author.avatar ? (
               <img
@@ -478,18 +492,18 @@ export default function EventDetailPage() {
                 className="w-6 h-6 rounded-full"
               />
             ) : (
-              <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+              <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
                 {(comment.author.name || comment.author.email)[0].toUpperCase()}
               </div>
             )}
-            <span className="font-medium text-sm">
+            <span className="font-medium text-sm text-gray-900">
               {comment.author.name || comment.author.email}
             </span>
             <span className="text-xs text-gray-500">
               {formatDate(comment.createdAt)}
             </span>
           </div>
-          <p className="text-sm text-gray-700 mb-2">{comment.content}</p>
+          <p className="text-sm text-gray-700 mb-2 leading-relaxed">{comment.content}</p>
           
           {/* Reply Button - Only show for participants and within max level */}
           {canParticipate && level < maxLevel && !showReplyForm[comment.id] && (
@@ -497,8 +511,9 @@ export default function EventDetailPage() {
               variant="ghost"
               size="sm"
               onClick={() => setShowReplyForm(prev => ({ ...prev, [comment.id]: true }))}
-              className="text-xs text-blue-600 hover:text-blue-700 p-1 h-auto"
+              className="text-xs text-blue-600 hover:text-blue-700 p-1 h-auto hover:bg-blue-50"
             >
+              <Reply className="w-3 h-3 mr-1" />
               Reply
             </Button>
           )}
@@ -509,14 +524,19 @@ export default function EventDetailPage() {
           <div className={`${indentClass} mt-3`}>
             <div className="bg-white border rounded-lg p-3">
               <div className="space-y-2">
-                <Textarea
-                  value={commentContent[comment.id] || ''}
-                  onChange={(e) => setCommentContent(prev => ({ ...prev, [comment.id]: e.target.value }))}
-                  placeholder="Write a reply..."
-                  rows={2}
-                  className="text-sm"
-                />
-                <div className="flex gap-2">
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                    U
+                  </div>
+                  <Textarea
+                    value={commentContent[comment.id] || ''}
+                    onChange={(e) => setCommentContent(prev => ({ ...prev, [comment.id]: e.target.value }))}
+                    placeholder="Write a reply..."
+                    rows={2}
+                    className="text-sm flex-1 resize-none"
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
                   <Button
                     onClick={() => handleCreateReply(comment.id)}
                     disabled={isCreatingComment[comment.id] || !commentContent[comment.id]?.trim()}
@@ -532,6 +552,7 @@ export default function EventDetailPage() {
                     className="text-xs"
                     disabled={isCreatingComment[comment.id]}
                   >
+                    <X className="w-3 h-3 mr-1" />
                     Cancel
                   </Button>
                 </div>
@@ -548,7 +569,8 @@ export default function EventDetailPage() {
         
         {comment.replies && comment.replies.length > 0 && level >= maxLevel && (
           <div className="mt-2 ml-4">
-            <Button variant="outline" size="sm" className="text-xs">
+            <Button variant="outline" size="sm" className="text-xs text-blue-600 hover:text-blue-700">
+              <MessageCircle className="w-3 h-3 mr-1" />
               View {comment.replies.length} more replies
             </Button>
           </div>
@@ -598,12 +620,12 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto">
         {/* Event Header */}
-        <Card className="mb-8">
+        <div className="bg-white border-b">
           {event.thumbnail && (
-            <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+            <div className="h-48 w-full overflow-hidden">
               <img
                 src={event.thumbnail}
                 alt={event.title}
@@ -611,104 +633,105 @@ export default function EventDetailPage() {
               />
             </div>
           )}
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-3xl font-bold mb-2">
-                  {event.title}
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
                   {event.verified && (
-                    <span className="ml-2 bg-green-100 text-green-800 text-sm px-2 py-1 rounded-full">
-                      Verified
+                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
+                  )}
+                </div>
+                {event.description && (
+                  <p className="text-gray-600 mb-4">{event.description}</p>
+                )}
+                
+                {/* Event Stats */}
+                <div className="flex items-center gap-6 text-sm text-gray-500 mb-4">
+                  <div className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    <span>{event._count.participants} participants</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FileText className="w-4 h-4" />
+                    <span>{event._count.posts} posts</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Heart className="w-4 h-4" />
+                    <span>{event._count.userLikes} likes</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>Created {formatDate(event.createdAt)}</span>
+                  </div>
+                </div>
+
+                {/* Event Details */}
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span className="flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    <span className="font-medium">Host:</span> {event.creator.name || event.creator.email}
+                  </span>
+                  {event.prize && (
+                    <span className="flex items-center gap-1">
+                      <Trophy className="w-4 h-4" />
+                      <span className="font-medium">Prize:</span> {event.prize}
                     </span>
                   )}
-                </CardTitle>
-                {event.description && (
-                  <p className="text-gray-600 mt-2">{event.description}</p>
-                )}
-              </div>
-              <span className={`px-3 py-1 text-sm rounded-full ${
-                event.isActive 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                {event.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div>
-                <span className="font-medium text-gray-700">Start Date:</span>
-                <p className="text-sm">{formatDate(event.startDate)}</p>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">End Date:</span>
-                <p className="text-sm">{formatDate(event.endDate)}</p>
-              </div>
-              {event.prize && (
-                <div>
-                  <span className="font-medium text-gray-700">Prize:</span>
-                  <p className="text-sm">{event.prize}</p>
-                </div>
-              )}
-              <div>
-                <span className="font-medium text-gray-700">Created:</span>
-                <p className="text-sm">{formatDate(event.createdAt)}</p>
-              </div>
-            </div>
-
-              <div className="flex flex-wrap gap-6 text-sm text-gray-600">
-              <div>
-                <span className="font-medium">Creator:</span> {event.creator.name || event.creator.email}
-              </div>
-              {event.winner && (
-                <div>
-                  <span className="font-medium">Winner:</span> {event.winner.name || event.winner.email}
-                </div>
-              )}
-              <div>
-                <span className="font-medium">Participants:</span> {event._count.participants}
-              </div>
-              <div>
-                <span className="font-medium">Posts:</span> {event._count.posts}
-              </div>
-              <div>
-                <span className="font-medium">Likes:</span> {event._count.userLikes}
-              </div>
-            </div>
-
-            {/* Join Event Button */}
-            {currentUserId && (
-              <div className="mt-6 pt-4 border-t flex items-center gap-4">
-                <div className="flex-1">
-                  {isEventHost(currentUserId) ? (
-                    <Button disabled className="bg-gray-100 text-gray-500">
-                      You are the host
-                    </Button>
-                  ) : isUserParticipant(currentUserId) ? (
-                    <Button disabled className="bg-green-100 text-green-700">
-                      Already Joined
-                    </Button>
-                  ) : !event.isActive ? (
-                    <Button disabled className="bg-gray-100 text-gray-500">
-                      Event Inactive
-                    </Button>
-                  ) : new Date() > new Date(event.endDate) ? (
-                    <Button disabled className="bg-gray-100 text-gray-500">
-                      Event Ended
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handleJoinEvent}
-                      disabled={isJoining}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      {isJoining ? 'Joining...' : 'Join Event'}
-                    </Button>
+                  {event.winner && (
+                    <span className="flex items-center gap-1">
+                      <Star className="w-4 h-4" />
+                      <span className="font-medium">Winner:</span> {event.winner.name || event.winner.email}
+                    </span>
                   )}
                 </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 text-sm rounded-full font-medium ${
+                  event.isActive 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {event.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            {currentUserId && (
+              <div className="flex items-center gap-3 pt-4 border-t">
+                {isEventHost(currentUserId) ? (
+                  <Button disabled className="bg-gray-100 text-gray-500" size="sm">
+                    <User className="w-4 h-4 mr-2" />
+                    Event Host
+                  </Button>
+                ) : isUserParticipant(currentUserId) ? (
+                  <Button disabled className="bg-green-100 text-green-700" size="sm">
+                    <Users className="w-4 h-4 mr-2" />
+                    Joined
+                  </Button>
+                ) : !event.isActive ? (
+                  <Button disabled className="bg-gray-100 text-gray-500" size="sm">
+                    Event Inactive
+                  </Button>
+                ) : new Date() > new Date(event.endDate) ? (
+                  <Button disabled className="bg-gray-100 text-gray-500" size="sm">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Event Ended
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleJoinEvent}
+                    disabled={isJoining}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="sm"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {isJoining ? 'Joining...' : 'Join Event'}
+                  </Button>
+                )}
                 
-                {/* Like Event Button */}
                 <Button
                   onClick={handleLikeEvent}
                   disabled={isLiking[event.id]}
@@ -716,33 +739,30 @@ export default function EventDetailPage() {
                   size="sm"
                   className={`${
                     userLikes[event.id] 
-                      ? 'bg-pink-500 hover:bg-pink-600 text-white' 
-                      : 'border-pink-500 text-pink-500 hover:bg-pink-50'
+                      ? 'bg-red-500 hover:bg-red-600 text-white border-red-500' 
+                      : 'border-red-500 text-red-500 hover:bg-red-50'
                   }`}
                 >
-                  {isLiking[event.id] ? (
-                    '💖 Updating...'
-                  ) : userLikes[event.id] ? (
-                    `💖 Liked (${event._count.userLikes})`
-                  ) : (
-                    `🤍 Like (${event._count.userLikes})`
-                  )}
+                  <Heart className={`w-4 h-4 mr-1 ${userLikes[event.id] ? 'fill-current' : ''}`} />
+                  {isLiking[event.id] ? 'Updating...' : `${event._count.userLikes}`}
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Posts and Comments */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Posts & Discussions</h2>
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between bg-white rounded-lg p-4 border">
+            <h2 className="text-xl font-semibold text-gray-900">Posts & Discussions</h2>
             {/* Create Post Button - Only for participants */}
             {currentUserId && isUserParticipant(currentUserId) && event.isActive && (
               <Button 
                 onClick={() => setShowPostForm(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
               >
+                <Plus className="w-4 h-4 mr-2" />
                 Create Post
               </Button>
             )}
@@ -750,11 +770,11 @@ export default function EventDetailPage() {
 
           {/* Create Post Form */}
           {showPostForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Create New Post</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="bg-white rounded-lg border">
+              <div className="p-4 border-b">
+                <h3 className="text-lg font-medium">Create New Post</h3>
+              </div>
+              <div className="p-4">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="postContent">Content *</Label>
@@ -764,7 +784,7 @@ export default function EventDetailPage() {
                       onChange={(e) => setPostContent(e.target.value)}
                       placeholder="Share your progress, ideas, or questions..."
                       rows={4}
-                      className="w-full"
+                      className="w-full resize-none"
                     />
                   </div>
 
@@ -777,39 +797,43 @@ export default function EventDetailPage() {
                     />
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 pt-2">
                     <Button
                       onClick={handleCreatePost}
                       disabled={isCreatingPost || !postContent.trim()}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
+                      size="sm"
                     >
-                      {isCreatingPost ? 'Creating Post...' : 'Create Post'}
+                      {isCreatingPost ? 'Posting...' : 'Post'}
                     </Button>
                     <Button
                       onClick={handleCancelPost}
                       variant="outline"
                       disabled={isCreatingPost}
+                      size="sm"
                     >
+                      <X className="w-4 h-4 mr-1" />
                       Cancel
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
           
           {event.posts.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-gray-500">No posts yet. Be the first to start a discussion!</p>
-              </CardContent>
-            </Card>
+            <div className="bg-white rounded-lg border p-12 text-center">
+              <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">No posts yet</p>
+              <p className="text-gray-400 text-sm">Be the first to start a discussion!</p>
+            </div>
           ) : (
             event.posts.map((post) => (
-              <Card key={post.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div key={post.id} className="bg-white rounded-lg border">
+                {/* Post Header */}
+                <div className="p-4 border-b bg-gray-50 rounded-t-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                       {post.author.avatar ? (
                         <img
                           src={post.author.avatar}
@@ -817,67 +841,72 @@ export default function EventDetailPage() {
                           className="w-8 h-8 rounded-full"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
                           {(post.author.name || post.author.email)[0].toUpperCase()}
                         </div>
                       )}
-                      <div>
-                        <span className="font-medium">{post.author.name || post.author.email}</span>
-                        <div className="text-xs text-gray-400">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900 text-sm">
+                          {post.author.name || post.author.email}
+                        </span>
+                        <span className="text-xs text-gray-500">
                           {formatDate(post.createdAt)}
-                        </div>
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      {/* Upvote Button - Only for participants/creators */}
+                    
+                    {/* Post Actions */}
+                    <div className="flex items-center gap-2">
+                      {/* Upvote Button */}
                       {currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) ? (
                         <Button
                           onClick={() => handleUpvotePost(post.id)}
                           disabled={isUpvoting[post.id]}
                           variant="ghost"
                           size="sm"
-                          className={`p-1 h-auto transition-all duration-200 ${
+                          className={`flex items-center gap-1 px-3 py-1 rounded-full transition-all ${
                             userUpvotes[post.id] 
-                              ? 'text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100' 
-                              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                              ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
+                              : 'text-gray-500 hover:bg-gray-100'
                           }`}
                         >
                           {isUpvoting[post.id] ? (
-                            <span className="flex items-center gap-1">
-                              <span className="animate-pulse">⏳</span>
-                              {post._count.userUpvotes}
-                            </span>
-                          ) : userUpvotes[post.id] ? (
-                            <span className="flex items-center gap-1 font-medium">
-                              <span className="text-blue-600">👍</span>
-                              {post._count.userUpvotes}
-                            </span>
+                            <>
+                              <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                              <span className="text-sm">{post._count.userUpvotes}</span>
+                            </>
                           ) : (
-                            <span className="flex items-center gap-1">
-                              <span>👍</span>
-                              {post._count.userUpvotes}
-                            </span>
+                            <>
+                              <ArrowUp className={`w-4 h-4 ${userUpvotes[post.id] ? 'fill-current' : ''}`} />
+                              <span className="text-sm font-medium">{post._count.userUpvotes}</span>
+                            </>
                           )}
                         </Button>
                       ) : (
-                        <span className="text-gray-500 flex items-center gap-1">
-                          <span>👍</span>
-                          {post._count.userUpvotes}
-                        </span>
+                        <div className="flex items-center gap-1 px-3 py-1 text-gray-500">
+                          <ArrowUp className="w-4 h-4" />
+                          <span className="text-sm">{post._count.userUpvotes}</span>
+                        </div>
                       )}
-                      <span className="text-gray-500">💬 {post._count.comments}</span>
+                      
+                      <div className="flex items-center gap-1 px-3 py-1 text-gray-500">
+                        <MessageCircle className="w-4 h-4" />
+                        <span className="text-sm">{post._count.comments}</span>
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 mb-4">{post.content}</p>
+                </div>
+
+                {/* Post Content */}
+                <div className="p-4">
+                  <p className="text-gray-800 mb-4 leading-relaxed">{post.content}</p>
                   
                   {post.image && (
                     <div className="mb-4">
                       <img
                         src={post.image}
                         alt="Post image"
-                        className="max-w-full h-auto rounded-lg shadow-sm"
+                        className="max-w-full h-auto rounded-lg border"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
@@ -885,17 +914,20 @@ export default function EventDetailPage() {
                     </div>
                   )}
                   
-                  {/* Comments */}
+                  {/* Comments Section */}
                   {post.comments.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-4">Comments</h4>
-                      <div className="space-y-4">
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4" />
+                        Comments
+                      </h4>
+                      <div className="space-y-3">
                         {post.comments.map((comment) => renderComment(comment))}
                       </div>
                     </div>
                   )}
 
-                  {/* Comment Form - Only for participants */}
+                  {/* Comment Form */}
                   {currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) && event.isActive && (
                     <div className="mt-6 pt-4 border-t">
                       {!showCommentForm[post.id] ? (
@@ -903,23 +935,24 @@ export default function EventDetailPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setShowCommentForm(prev => ({ ...prev, [post.id]: true }))}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
                         >
-                          💬 Add Comment
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Add Comment
                         </Button>
                       ) : (
-                        <div className="bg-white border rounded-lg p-3">
+                        <div className="bg-gray-50 rounded-lg p-3 border">
                           <div className="space-y-3">
-                            <div className="flex items-start gap-2">
+                            <div className="flex items-start gap-3">
                               {currentUserId && event.participants.find(p => p.id === currentUserId)?.avatar ? (
                                 <img
                                   src={event.participants.find(p => p.id === currentUserId)?.avatar}
                                   alt="Your avatar"
-                                  className="w-8 h-8 rounded-full"
+                                  className="w-8 h-8 rounded-full flex-shrink-0"
                                 />
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs text-blue-600">
-                                  You
+                                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                                  U
                                 </div>
                               )}
                               <div className="flex-1">
@@ -928,7 +961,7 @@ export default function EventDetailPage() {
                                   onChange={(e) => setCommentContent(prev => ({ ...prev, [post.id]: e.target.value }))}
                                   placeholder="Write a comment..."
                                   rows={3}
-                                  className="text-sm"
+                                  className="text-sm resize-none"
                                 />
                               </div>
                             </div>
@@ -939,7 +972,7 @@ export default function EventDetailPage() {
                                 size="sm"
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
                               >
-                                {isCreatingComment[post.id] ? 'Commenting...' : 'Comment'}
+                                {isCreatingComment[post.id] ? 'Posting...' : 'Comment'}
                               </Button>
                               <Button
                                 onClick={() => handleCancelComment(post.id, 'comment')}
@@ -955,8 +988,8 @@ export default function EventDetailPage() {
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))
           )}
         </div>
