@@ -246,6 +246,66 @@ export class UserService {
                     },
                     take: 10, // Limit to recent 10 event likes
                 },
+                
+                // User's wallet information
+                wallet: {
+                    select: {
+                        id: true,
+                        balance: true,
+                        lockedBalance: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+                
+                // User's transaction history
+                transactions: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        type: true,
+                        status: true,
+                        description: true,
+                        txHash: true,
+                        createdAt: true,
+                        confirmedAt: true,
+                        senderWallet: {
+                            select: {
+                                id: true,
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                    },
+                                },
+                            },
+                        },
+                        receiverWallet: {
+                            select: {
+                                id: true,
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                    },
+                                },
+                            },
+                        },
+                        event: {
+                            select: {
+                                id: true,
+                                title: true,
+                                verified: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                    take: 20, // Limit to recent 20 transactions
+                },
             },
         }).then(user => {
             if (!user) {
