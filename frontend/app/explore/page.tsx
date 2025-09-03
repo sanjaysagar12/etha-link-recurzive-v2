@@ -211,12 +211,21 @@ export default function ExplorePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading posts...</p>
-          </div>
+      <div className="min-h-screen bg-[#161616] flex items-center justify-center relative overflow-hidden">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: `url('/Avalink.webp')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundAttachment: 'fixed'
+          }}
+        />
+        <div className="fixed inset-0 bg-black/60" />
+        
+        <div className="text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl rounded-lg p-8 relative z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#E94042] border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-300">Loading posts...</p>
         </div>
       </div>
     );
@@ -224,61 +233,92 @@ export default function ExplorePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto py-8">
-          <div className="text-center">
-            <p className="text-red-600 text-lg">{error}</p>
-            <Button onClick={fetchExplorePosts} className="mt-4">
-              Try Again
-            </Button>
-          </div>
+      <div className="min-h-screen bg-[#161616] flex items-center justify-center relative overflow-hidden">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage: `url('/Avalink.webp')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundAttachment: 'fixed'
+          }}
+        />
+        <div className="fixed inset-0 bg-black/60" />
+        
+        <div className="text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl rounded-lg p-8 relative z-10 max-w-md">
+          <MessageCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 text-lg font-semibold mb-2">Error</p>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <Button 
+            onClick={fetchExplorePosts}
+            className="w-full bg-[#E94042] hover:bg-[#E94042]/90 text-white"
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[#161616] relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-50"
+        style={{
+          backgroundImage: `url('/Avalink.webp')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundAttachment: 'fixed'
+        }}
+      />
+      
+      {/* Dark overlay */}
+      <div className="fixed inset-0 bg-black/60" />
+
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header */}
-        <div className="bg-white border-b sticky top-0 z-10">
-          <div className="p-4">
+        <div className="bg-white/5 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+          <div className="p-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">Explore Posts</h1>
-              <div className="text-sm text-gray-500">
-                {posts.length} posts found
+              <div>
+                <h1 className="text-3xl font-bold text-white">Explore Posts</h1>
+                <p className="text-gray-300 mt-1">Discover amazing content from the community</p>
+              </div>
+              <div className="text-sm text-gray-400 bg-white/10 backdrop-blur-sm border border-white/20 px-3 py-2 rounded-lg">
+                <span className="font-medium">{posts.length}</span> posts found
               </div>
             </div>
           </div>
         </div>
 
         {/* Posts Feed */}
-        <div className="p-4 space-y-4">
+        <div className="p-6 space-y-6">
           {posts.length === 0 ? (
-            <div className="bg-white rounded-lg border p-12 text-center">
-              <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No posts found</p>
-              <p className="text-gray-400 text-sm">Check back later for new content!</p>
+            <div className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl rounded-lg p-12 text-center">
+              <MessageCircle className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-300 text-lg font-semibold mb-2">No posts found</p>
+              <p className="text-gray-400 text-sm">Check back later for new content from the community!</p>
             </div>
           ) : (
             posts.map((post) => (
-              <div key={post.id} className="bg-white rounded-lg border hover:shadow-md transition-shadow">
+              <div key={post.id} className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl rounded-lg hover:bg-white/7 transition-all duration-300 overflow-hidden">
                 {/* Post Header */}
-                <div className="p-4 border-b bg-gray-50 rounded-t-lg">
+                <div className="p-4 border-b border-white/20 bg-white/5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       {/* Event Info */}
                       <div className="flex items-center gap-2 text-sm">
-                        <div className="w-6 h-6 rounded bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
+                        <div className="w-8 h-8 rounded-full bg-[#E94042] flex items-center justify-center text-white text-xs font-bold shadow-lg">
                           E
                         </div>
-                        <span className="font-medium text-blue-600">r/{post.event.title}</span>
+                        <span className="font-semibold text-white">r/{post.event.title}</span>
                         {post.event.verified && (
-                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
                         )}
                       </div>
                       
-                      <span className="text-gray-400">•</span>
+                      <span className="text-gray-500">•</span>
                       
                       {/* Author Info */}
                       <div className="flex items-center gap-2">
@@ -286,30 +326,30 @@ export default function ExplorePage() {
                           <img
                             src={post.author.avatar}
                             alt={post.author.name || 'User'}
-                            className="w-6 h-6 rounded-full"
+                            className="w-7 h-7 rounded-full border-2 border-white/20"
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium">
+                          <div className="w-7 h-7 rounded-full bg-gray-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white/20">
                             {(post.author.name || post.author.email)[0].toUpperCase()}
                           </div>
                         )}
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-gray-300 font-medium">
                           u/{post.author.name || post.author.email}
                         </span>
                       </div>
                       
-                      <span className="text-gray-400">•</span>
-                      <span className="text-sm text-gray-500">{formatTimeAgo(post.createdAt)}</span>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-sm text-gray-400">{formatTimeAgo(post.createdAt)}</span>
                     </div>
                     
                     {/* Event Status */}
                     <div className="flex items-center gap-2">
                       {post.event.isActive ? (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                        <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium border border-green-500/30">
                           Active
                         </span>
                       ) : (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                        <span className="px-3 py-1 bg-gray-500/20 text-gray-400 text-xs rounded-full font-medium border border-gray-500/30">
                           Inactive
                         </span>
                       )}
@@ -319,17 +359,17 @@ export default function ExplorePage() {
 
                 {/* Post Content */}
                 <div 
-                  className="p-4 cursor-pointer"
+                  className="p-6 cursor-pointer"
                   onClick={() => handlePostClick(post.event.id)}
                 >
-                  <p className="text-gray-800 mb-4 leading-relaxed">{post.content}</p>
+                  <p className="text-gray-200 mb-4 leading-relaxed text-lg">{post.content}</p>
                   
                   {post.image && (
                     <div className="mb-4">
                       <img
                         src={post.image}
                         alt="Post image"
-                        className="max-w-full h-auto rounded-lg border"
+                        className="max-w-full h-auto rounded-lg border border-white/20 shadow-lg"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
@@ -339,8 +379,8 @@ export default function ExplorePage() {
                 </div>
 
                 {/* Post Actions */}
-                <div className="px-4 py-3 border-t bg-gray-50 rounded-b-lg">
-                  <div className="flex items-center gap-4">
+                <div className="px-6 py-4 border-t border-white/20 bg-white/5">
+                  <div className="flex items-center gap-6">
                     {/* Upvote Button */}
                     {currentUserId ? (
                       <Button
@@ -351,28 +391,28 @@ export default function ExplorePage() {
                         disabled={isUpvoting[post.id]}
                         variant="ghost"
                         size="sm"
-                        className={`flex items-center gap-2 px-3 py-2 rounded-full transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
                           userUpvotes[post.id] 
-                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' 
-                            : 'text-gray-500 hover:bg-gray-100'
+                            ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border border-orange-500/30' 
+                            : 'text-gray-300 hover:bg-white/10 border border-white/20'
                         }`}
                       >
                         {isUpvoting[post.id] ? (
                           <>
-                            <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
                             <span className="text-sm font-medium">{post._count.userUpvotes}</span>
                           </>
                         ) : (
                           <>
-                            <ArrowUp className={`w-4 h-4 ${userUpvotes[post.id] ? 'fill-current' : ''}`} />
-                            <span className="text-sm font-medium">{post._count.userUpvotes}</span>
+                            <ArrowUp className={`w-5 h-5 ${userUpvotes[post.id] ? 'fill-current' : ''}`} />
+                            <span className="text-sm font-semibold">{post._count.userUpvotes}</span>
                           </>
                         )}
                       </Button>
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 text-gray-500">
-                        <ArrowUp className="w-4 h-4" />
-                        <span className="text-sm">{post._count.userUpvotes}</span>
+                      <div className="flex items-center gap-2 px-4 py-2 text-gray-400 bg-white/5 rounded-full border border-white/20">
+                        <ArrowUp className="w-5 h-5" />
+                        <span className="text-sm font-semibold">{post._count.userUpvotes}</span>
                       </div>
                     )}
                     
@@ -381,10 +421,10 @@ export default function ExplorePage() {
                       onClick={() => handlePostClick(post.event.id)}
                       variant="ghost"
                       size="sm"
-                      className="flex items-center gap-2 px-3 py-2 rounded-full text-gray-500 hover:bg-gray-100"
+                      className="flex items-center gap-2 px-4 py-2 rounded-full text-gray-300 hover:bg-white/10 border border-white/20 hover:border-white/30 transition-all duration-300"
                     >
-                      <MessageCircle className="w-4 h-4" />
-                      <span className="text-sm">{post._count.comments}</span>
+                      <MessageCircle className="w-5 h-5" />
+                      <span className="text-sm font-semibold">{post._count.comments}</span>
                     </Button>
                     
                     {/* View Event */}
@@ -392,41 +432,41 @@ export default function ExplorePage() {
                       onClick={() => handlePostClick(post.event.id)}
                       variant="ghost"
                       size="sm"
-                      className="flex items-center gap-2 px-3 py-2 rounded-full text-gray-500 hover:bg-gray-100 ml-auto"
+                      className="flex items-center gap-2 px-4 py-2 rounded-full text-gray-300 hover:bg-[#E94042]/20 hover:text-[#E94042] border border-white/20 hover:border-[#E94042]/30 transition-all duration-300 ml-auto"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      <span className="text-sm">View Event</span>
+                      <span className="text-sm font-medium">View Event</span>
                     </Button>
                   </div>
                 </div>
 
                 {/* Comments Preview */}
                 {post.comments.length > 0 && (
-                  <div className="px-4 py-3 border-t">
-                    <div className="space-y-3">
+                  <div className="px-6 py-4 border-t border-white/20 bg-black/20">
+                    <div className="space-y-4">
                       {post.comments.slice(0, 2).map((comment) => (
-                        <div key={comment.id} className="flex items-start gap-2">
+                        <div key={comment.id} className="flex items-start gap-3">
                           {comment.author.avatar ? (
                             <img
                               src={comment.author.avatar}
                               alt={comment.author.name || 'User'}
-                              className="w-6 h-6 rounded-full flex-shrink-0"
+                              className="w-8 h-8 rounded-full flex-shrink-0 border-2 border-white/20"
                             />
                           ) : (
-                            <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs font-medium flex-shrink-0 border-2 border-white/20">
                               {(comment.author.name || comment.author.email)[0].toUpperCase()}
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-gray-900">
-                                {comment.author.name || comment.author.email}
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm font-semibold text-white">
+                                u/{comment.author.name || comment.author.email}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-400">
                                 {formatTimeAgo(comment.createdAt)}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-700 line-clamp-2">{comment.content}</p>
+                            <p className="text-sm text-gray-300 leading-relaxed line-clamp-2">{comment.content}</p>
                           </div>
                         </div>
                       ))}
@@ -435,9 +475,9 @@ export default function ExplorePage() {
                           onClick={() => handlePostClick(post.event.id)}
                           variant="ghost"
                           size="sm"
-                          className="text-blue-600 hover:text-blue-700 text-sm p-0 h-auto"
+                          className="text-[#E94042] hover:text-[#E94042]/80 text-sm p-0 h-auto font-medium"
                         >
-                          View all {post._count.comments} comments
+                          View all {post._count.comments} comments →
                         </Button>
                       )}
                     </div>
