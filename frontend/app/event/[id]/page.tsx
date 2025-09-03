@@ -57,6 +57,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchEventDetail = async () => {
@@ -96,6 +97,71 @@ export default function EventDetailPage() {
       fetchEventDetail();
     }
   }, [params.id]);
+
+  const handleJoinEvent = async () => {
+    if (!event) return;
+    
+    setIsJoining(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:3000/api/event/${params.id}/join`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Successfully joined the event!');
+        // Refresh event details to show updated participant count
+        fetchEventDetail();
+      } else {
+        alert(`Error: ${result.message || 'Failed to join event'}`);
+      }
+    } catch (error) {
+      console.error('Error joining event:', error);
+      alert('Failed to join event');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const isUserParticipant = (userId: string) => {
+    if (!event) return false;
+    return event.participants.some(participant => participant.id === userId);
+  };
+
+  const isEventHost = (userId: string) => {
+    if (!event) return false;
+    return event.creator.id === userId;
+  };
+
+  // Get current user ID from token (simplified approach)
+  const getCurrentUserId = () => {
+    // Check if we're in the browser environment
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  };
+
+  const currentUserId = getCurrentUserId();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -269,6 +335,37 @@ export default function EventDetailPage() {
                 <span className="font-medium">Posts:</span> {event._count.posts}
               </div>
             </div>
+
+            {/* Join Event Button */}
+            {currentUserId && (
+              <div className="mt-6 pt-4 border-t">
+                {isEventHost(currentUserId) ? (
+                  <Button disabled className="bg-gray-100 text-gray-500">
+                    You are the host
+                  </Button>
+                ) : isUserParticipant(currentUserId) ? (
+                  <Button disabled className="bg-green-100 text-green-700">
+                    Already Joined
+                  </Button>
+                ) : !event.isActive ? (
+                  <Button disabled className="bg-gray-100 text-gray-500">
+                    Event Inactive
+                  </Button>
+                ) : new Date() > new Date(event.endDate) ? (
+                  <Button disabled className="bg-gray-100 text-gray-500">
+                    Event Ended
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleJoinEvent}
+                    disabled={isJoining}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {isJoining ? 'Joining...' : 'Join Event'}
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
