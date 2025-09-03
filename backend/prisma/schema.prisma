@@ -25,6 +25,7 @@ model User {
   name        String?
   avatar      String?
   googleId    String?  @unique
+  walletAddress String? @unique
   role        Role     @default(USER)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -38,6 +39,10 @@ model User {
   comments      Comment[]
   upvotes       Upvote[]
   eventLikes    EventLike[]
+
+  // Wallet relationships
+  wallet        Wallet?
+  transactions  Transaction[]
 
   @@map("users")
 }
@@ -72,6 +77,9 @@ model Event {
 
   // Likes relationship
   userLikes   EventLike[]
+
+  // Transaction relationship
+  transactions Transaction[]
 
   @@map("events")
 }
@@ -155,4 +163,75 @@ model EventLike {
   // Ensure one user can only like an event once
   @@unique([userId, eventId])
   @@map("event_likes")
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PRIZE_LOCK
+  PRIZE_DISTRIBUTION
+  EVENT_PARTICIPATION
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+model Wallet {
+  id            String   @id @default(cuid())
+  balance       String   @default("0") // Store as string to handle large numbers/decimals
+  lockedBalance String   @default("0") // Funds locked in smart contracts
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // User relationship (one-to-one)
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Transaction relationships
+  sentTransactions     Transaction[] @relation("SenderWallet")
+  receivedTransactions Transaction[] @relation("ReceiverWallet")
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  amount          String            // Store as string for precision
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  description     String?
+  txHash          String?           // Blockchain transaction hash
+  blockNumber     Int?              // Block number for confirmed transactions
+  gasUsed         String?           // Gas used in blockchain transaction
+  gasFee          String?           // Gas fee paid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  confirmedAt     DateTime?         // When transaction was confirmed
+
+  // User relationship (who initiated the transaction)
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Sender wallet relationship
+  senderWalletId  String?
+  senderWallet    Wallet?           @relation("SenderWallet", fields: [senderWalletId], references: [id])
+
+  // Receiver wallet relationship
+  receiverWalletId String?
+  receiverWallet   Wallet?          @relation("ReceiverWallet", fields: [receiverWalletId], references: [id])
+
+  // External wallet addresses (for blockchain transactions)
+  fromAddress     String?           // External sender address
+  toAddress       String?           // External receiver address
+
+  // Event relationship (if transaction is related to an event)
+  eventId         String?
+  event           Event?            @relation(fields: [eventId], references: [id])
+
+  @@map("transactions")
 }
