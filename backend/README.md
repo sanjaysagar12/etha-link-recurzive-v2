@@ -1,98 +1,321 @@
+# Etha-Link Backend API
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Quick Start
 
-## Description
+Follow these steps **in order** to get the backend up and running:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Prerequisites
 
-## Project setup
+- **Node.js** (v16 or higher)
+- **Docker** and **Docker Compose**
+- **npm** or **yarn**
+
+### Step-by-Step Setup
+
+#### 1. Install Dependencies
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+#### 2. **FIRST**: Start Database with Docker
+
+⚠️ **Important**: Always start Docker services first before running migrations!
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+docker compose up -d
 ```
 
-## Run tests
+This will start:
+- PostgreSQL database on port 5432
+- Any other required services
+
+Wait for the database to be fully ready (you can check with `docker compose logs db`).
+
+#### 3. **SECOND**: Run Database Migrations
+
+After the database is running, initialize and migrate the database schema:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npx prisma migrate dev
 ```
 
-## Deployment
+This command will:
+- Create the database if it doesn't exist
+- Apply all pending migrations
+- Generate the Prisma client
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+#### 4. **THIRD**: Start Development Server
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Finally, start the NestJS development server:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API will be available at `http://localhost:3000`
 
-## Resources
+### ⚡ One-Command Setup
 
-Check out a few resources that may come in handy when working with NestJS:
+You can also run all commands in sequence:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+npm install && docker compose up -d && sleep 10 && npx prisma migrate dev && npm run start:dev
+```
 
-## Support
+> **Note**: The `sleep 10` ensures the database is fully started before running migrations.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📚 Available Scripts
 
-## Stay in touch
+### Development
+```bash
+# Start development server with hot reload
+npm run start:dev
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Start development server (no hot reload)
+npm run start
 
-## License
+# Build for production
+npm run build
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# Start production server
+npm run start:prod
+```
+
+### Database Management
+```bash
+# Run database migrations
+npx prisma migrate dev
+
+# Reset database (WARNING: This will delete all data)
+npx prisma migrate reset
+
+# Generate Prisma client
+npx prisma generate
+
+# Open Prisma Studio (Database GUI)
+npx prisma studio
+```
+
+### Testing
+```bash
+# Run unit tests
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run end-to-end tests
+npm run test:e2e
+
+# Generate test coverage report
+npm run test:cov
+```
+
+### Docker Commands
+```bash
+# Start all services
+docker compose up -d
+
+# Stop all services
+docker compose down
+
+# View logs
+docker compose logs
+
+# Rebuild containers
+docker compose up --build
+```
+
+## 🔧 Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# PostgreSQL
+POSTGRES_USER=your_postgres_user
+POSTGRES_PASSWORD=your_postgres_password
+POSTGRES_DB=your_database_name
+POSTGRES_PORT=5432
+
+# Redis
+REDIS_PORT=6379
+
+# Prisma
+DATABASE_URL=postgresql://<user>:<password>@localhost:5432/<database>
+
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+
+# JWT
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=7d
+```
+
+## 🏗️ Project Structure
+
+```
+src/
+├── auth/                 # Authentication module
+├── user/                 # User management
+├── event/                # Event management
+├── post/                 # Post management
+├── comment/              # Comment system
+├── upload/               # File upload handling
+├── common/               # Shared utilities
+├── guards/               # Route guards
+├── decorators/           # Custom decorators
+├── prisma/               # Database schema and client
+└── main.ts               # Application entry point
+```
+
+## 🔐 API Authentication
+
+The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
+
+```bash
+Authorization: Bearer <your-jwt-token>
+```
+
+## 📖 API Documentation
+
+Once the server is running, you can access:
+
+- **API Endpoints**: `http://localhost:3000`
+- **Swagger Documentation**: `http://localhost:3000/api` (if configured)
+- **Prisma Studio**: Run `npx prisma studio` for database GUI
+
+## 🐳 Docker Development
+
+The project includes Docker configuration for easy development:
+
+### Services Included:
+- **PostgreSQL**: Database server
+- **Redis**: Caching (if configured)
+- **Backend API**: NestJS application
+
+### Docker Commands:
+```bash
+# Start all services in development mode
+docker compose up -d
+
+# View service logs
+docker compose logs -f api
+
+# Execute commands in containers
+docker compose exec api npm run prisma:studio
+```
+
+## 🔄 Database Migrations
+
+### Creating New Migrations:
+```bash
+# Create a new migration after schema changes
+npx prisma migrate dev --name describe-your-changes
+
+# Apply migrations to production
+npx prisma migrate deploy
+```
+
+### Managing Schema:
+```bash
+# Reset database (development only)
+npx prisma migrate reset
+
+# Pull database schema changes
+npx prisma db pull
+
+# Push schema changes without migration
+npx prisma db push
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues:
+
+1. **Database Connection Error**:
+   ```bash
+   # Check if Docker containers are running
+   docker compose ps
+   
+   # Restart database service
+   docker compose restart db
+   ```
+
+2. **Prisma Client Issues**:
+   ```bash
+   # Regenerate Prisma client
+   npx prisma generate
+   ```
+
+3. **Port Already in Use**:
+   ```bash
+   # Check what's using port 3000
+   lsof -i :3000
+   
+   # Kill process or change PORT in .env
+   ```
+
+4. **Migration Errors**:
+   ```bash
+   # Reset migrations (development only)
+   npx prisma migrate reset
+   
+   # Resolve migration conflicts
+   npx prisma migrate resolve --applied "migration-name"
+   ```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:cov
+
+# Run specific test file
+npm test -- user.service.spec.ts
+
+# Run e2e tests
+npm run test:e2e
+```
+
+## 📦 Production Deployment
+
+### Build and Deploy:
+```bash
+# Build the application
+npm run build
+
+# Run production build
+npm run start:prod
+```
+
+### Environment Setup:
+1. Set `NODE_ENV=production`
+2. Use production database URL
+3. Configure proper JWT secrets
+4. Set up SSL certificates
+5. Configure reverse proxy (nginx/Apache)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `npm test`
+5. Commit your changes
+6. Push to the branch
+7. Create a Pull Request
+
+## 📝 License
+
+This project is [MIT licensed](LICENSE).
