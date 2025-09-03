@@ -22,13 +22,15 @@ interface Comment {
 
 interface Post {
   id: string;
-  title: string;
   content: string;
+  image?: string;
+  upvotes: number;
   createdAt: string;
   author: User;
   comments: Comment[];
   _count: {
     comments: number;
+    userUpvotes: number;
   };
 }
 
@@ -39,6 +41,7 @@ interface EventDetail {
   prize?: string;
   thumbnail?: string;
   verified: boolean;
+  likes: number;
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -50,6 +53,7 @@ interface EventDetail {
   _count: {
     participants: number;
     posts: number;
+    userLikes: number;
   };
 }
 
@@ -319,7 +323,7 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-6 text-sm text-gray-600">
+              <div className="flex flex-wrap gap-6 text-sm text-gray-600">
               <div>
                 <span className="font-medium">Creator:</span> {event.creator.name || event.creator.email}
               </div>
@@ -333,6 +337,9 @@ export default function EventDetailPage() {
               </div>
               <div>
                 <span className="font-medium">Posts:</span> {event._count.posts}
+              </div>
+              <div>
+                <span className="font-medium">Likes:</span> {event._count.userLikes}
               </div>
             </div>
 
@@ -384,31 +391,46 @@ export default function EventDetailPage() {
               <Card key={post.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{post.title}</CardTitle>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
-                        {post.author.avatar ? (
-                          <img
-                            src={post.author.avatar}
-                            alt={post.author.name || 'User'}
-                            className="w-6 h-6 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">
-                            {(post.author.name || post.author.email)[0].toUpperCase()}
-                          </div>
-                        )}
-                        <span>{post.author.name || post.author.email}</span>
-                        <span>•</span>
-                        <span>{formatDate(post.createdAt)}</span>
-                        <span>•</span>
-                        <span>{post._count.comments} comments</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      {post.author.avatar ? (
+                        <img
+                          src={post.author.avatar}
+                          alt={post.author.name || 'User'}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-xs">
+                          {(post.author.name || post.author.email)[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-medium">{post.author.name || post.author.email}</span>
+                        <div className="text-xs text-gray-400">
+                          {formatDate(post.createdAt)}
+                        </div>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>👍 {post._count.userUpvotes}</span>
+                      <span>💬 {post._count.comments}</span>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-700 mb-6">{post.content}</p>
+                  <p className="text-gray-700 mb-4">{post.content}</p>
+                  
+                  {post.image && (
+                    <div className="mb-4">
+                      <img
+                        src={post.image}
+                        alt="Post image"
+                        className="max-w-full h-auto rounded-lg shadow-sm"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
                   
                   {/* Comments */}
                   {post.comments.length > 0 && (

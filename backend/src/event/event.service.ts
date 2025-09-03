@@ -94,6 +94,7 @@ export class EventService {
                 prize: true,
                 thumbnail: true,
                 verified: true,
+                likes: true,
                 startDate: true,
                 endDate: true,
                 isActive: true,
@@ -125,8 +126,9 @@ export class EventService {
                 posts: {
                     select: {
                         id: true,
-                        title: true,
                         content: true,
+                        image: true,
+                        upvotes: true,
                         createdAt: true,
                         author: {
                             select: {
@@ -196,6 +198,7 @@ export class EventService {
                         _count: {
                             select: {
                                 comments: true,
+                                userUpvotes: true,
                             },
                         },
                     },
@@ -207,6 +210,7 @@ export class EventService {
                     select: {
                         participants: true,
                         posts: true,
+                        userLikes: true,
                     },
                 },
             },
