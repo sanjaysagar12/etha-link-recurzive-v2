@@ -1098,4 +1098,135 @@ export class EventService {
       throw error;
     }
   }
+
+  /**
+   * Get all events hosted by a specific user
+   */
+  async getHostedEvents(userId: string) {
+    try {
+      const hostedEvents = await this.prisma.event.findMany({
+        where: {
+          creatorId: userId,
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          prize: true,
+          thumbnail: true,
+          verified: true,
+          startDate: true,
+          endDate: true,
+          isActive: true,
+          likes: true,
+          createdAt: true,
+          updatedAt: true,
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+          winner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+            },
+          },
+          _count: {
+            select: {
+              participants: true,
+              posts: true,
+              userLikes: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      this.logger.log(`Found ${hostedEvents.length} hosted events for user ${userId}`);
+      return hostedEvents;
+    } catch (error) {
+      this.logger.error(`Failed to fetch hosted events for user ${userId}:`, error);
+      throw new Error('Failed to fetch hosted events');
+    }
+  }
+
+  /**
+   * Get all participants of a specific event
+   */
+  async getEventParticipants(eventId: string, requesterId: string) {
+    try {
+      // First, check if the event exists and get event details
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+          id: true,
+          title: true,
+          creatorId: true,
+          participants: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
+              walletAddress: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'asc', // Order by join date
+            },
+          },
+          _count: {
+            select: {
+              participants: true,
+            },
+          },
+        },
+      });
+
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      // Check if the requester has permission to view participants
+      // Event host can always view, participants can view other participants
+      const isEventHost = event.creatorId === requesterId;
+      const isParticipant = event.participants.some(p => p.id === requesterId);
+
+      if (!isEventHost && !isParticipant) {
+        throw new Error('You must be the event host or a participant to view participants');
+      }
+
+      // If requester is not the host, hide sensitive information like email and wallet
+      const sanitizedParticipants = event.participants.map(participant => ({
+        id: participant.id,
+        name: participant.name,
+        email: isEventHost ? participant.email : undefined, // Only host can see emails
+        avatar: participant.avatar,
+        walletAddress: isEventHost ? participant.walletAddress : undefined, // Only host can see wallets
+        createdAt: participant.createdAt,
+      }));
+
+      this.logger.log(`Returning ${event.participants.length} participants for event ${eventId} to user ${requesterId}`);
+      
+      return {
+        event: {
+          id: event.id,
+          title: event.title,
+          totalParticipants: event._count.participants,
+        },
+        participants: sanitizedParticipants,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch participants for event ${eventId}:`, error);
+      throw error;
+    }
+  }
 }

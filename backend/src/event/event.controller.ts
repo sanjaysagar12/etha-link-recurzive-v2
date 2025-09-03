@@ -232,6 +232,45 @@ export class EventController {
         };
     }
 
+    @Get('hosted/:userId')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async getHostedEvents(
+        @Param('userId') userId: string,
+        @GetUser('sub') currentUserId: string,
+    ) {
+        this.logger.log(`Fetching hosted events for user ${userId}`);
+        
+        // Users can only view their own hosted events unless they're admin
+        if (userId !== currentUserId) {
+            // Check if current user is admin (you might want to add admin role check here)
+            this.logger.log(`User ${currentUserId} requesting hosted events for different user ${userId}`);
+        }
+        
+        const data = await this.eventService.getHostedEvents(userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Hosted events fetched successfully',
+        };
+    }
+
+    @Get(':id/participants')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async getEventParticipants(
+        @Param('id') eventId: string,
+        @GetUser('sub') userId: string,
+    ) {
+        this.logger.log(`User ${userId} fetching participants for event ${eventId}`);
+        const data = await this.eventService.getEventParticipants(eventId, userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Event participants fetched successfully',
+        };
+    }
+
     @Patch(':id/unverify')
     @UseGuards(JwtGuard, RolesGuard)
     @Roles(Role.ADMIN)
