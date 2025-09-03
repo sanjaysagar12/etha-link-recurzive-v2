@@ -36,6 +36,8 @@ model User {
   wonEvents     Event[] @relation("EventWinner")
   posts         Post[]
   comments      Comment[]
+  upvotes       Upvote[]
+  eventLikes    EventLike[]
 
   @@map("users")
 }
@@ -50,6 +52,7 @@ model Event {
   startDate   DateTime
   endDate     DateTime
   isActive    Boolean  @default(true)
+  likes       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -67,13 +70,17 @@ model Event {
   // Posts relationship
   posts       Post[]
 
+  // Likes relationship
+  userLikes   EventLike[]
+
   @@map("events")
 }
 
 model Post {
   id        String   @id @default(cuid())
-  title     String
   content   String
+  image     String?
+  upvotes   Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -87,6 +94,9 @@ model Post {
 
   // Comments relationship
   comments  Comment[]
+  
+  // Upvotes relationship
+  userUpvotes Upvote[]
 
   @@map("posts")
 }
@@ -111,4 +121,38 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
 
   @@map("comments")
+}
+
+model Upvote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // User relationship
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Post relationship
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Ensure one user can only upvote a post once
+  @@unique([userId, postId])
+  @@map("upvotes")
+}
+
+model EventLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // User relationship
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Event relationship
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Ensure one user can only like an event once
+  @@unique([userId, eventId])
+  @@map("event_likes")
 }
