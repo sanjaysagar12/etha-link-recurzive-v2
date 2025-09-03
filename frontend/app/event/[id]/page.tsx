@@ -79,6 +79,12 @@ export default function EventDetailPage() {
   const [showCommentForm, setShowCommentForm] = useState<{ [key: string]: boolean }>({});
   const [showReplyForm, setShowReplyForm] = useState<{ [key: string]: boolean }>({});
 
+  // Like and upvote state
+  const [userLikes, setUserLikes] = useState<{ [key: string]: boolean }>({});
+  const [userUpvotes, setUserUpvotes] = useState<{ [key: string]: boolean }>({});
+  const [isLiking, setIsLiking] = useState<{ [key: string]: boolean }>({});
+  const [isUpvoting, setIsUpvoting] = useState<{ [key: string]: boolean }>({});
+
   const fetchEventDetail = async () => {
     try {
       const token = localStorage.getItem('access_token');
@@ -343,6 +349,89 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleLikeEvent = async () => {
+    if (!event || !currentUserId) return;
+    
+    const eventId = event.id;
+    const isCurrentlyLiked = userLikes[eventId];
+    
+    setIsLiking(prev => ({ ...prev, [eventId]: true }));
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const endpoint = isCurrentlyLiked ? 'unlike' : 'like';
+      const response = await fetch(`http://localhost:3000/api/event/${eventId}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        setUserLikes(prev => ({ ...prev, [eventId]: !isCurrentlyLiked }));
+        // Refresh event details to show updated like count
+        fetchEventDetail();
+      } else {
+        alert(`Error: ${result.message || 'Failed to update like'}`);
+      }
+    } catch (error) {
+      console.error('Error updating event like:', error);
+      alert('Failed to update like');
+    } finally {
+      setIsLiking(prev => ({ ...prev, [eventId]: false }));
+    }
+  };
+
+  const handleUpvotePost = async (postId: string) => {
+    if (!currentUserId) return;
+    
+    const isCurrentlyUpvoted = userUpvotes[postId];
+    
+    setIsUpvoting(prev => ({ ...prev, [postId]: true }));
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      if (!token) {
+        alert('Please login first');
+        return;
+      }
+
+      const endpoint = isCurrentlyUpvoted ? 'remove-upvote' : 'upvote';
+      const response = await fetch(`http://localhost:3000/api/event/post/${postId}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Update local state
+        setUserUpvotes(prev => ({ ...prev, [postId]: !isCurrentlyUpvoted }));
+        // Refresh event details to show updated upvote count
+        fetchEventDetail();
+      } else {
+        alert(`Error: ${result.message || 'Failed to update upvote'}`);
+      }
+    } catch (error) {
+      console.error('Error updating post upvote:', error);
+      alert('Failed to update upvote');
+    } finally {
+      setIsUpvoting(prev => ({ ...prev, [postId]: false }));
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -570,32 +659,55 @@ export default function EventDetailPage() {
 
             {/* Join Event Button */}
             {currentUserId && (
-              <div className="mt-6 pt-4 border-t">
-                {isEventHost(currentUserId) ? (
-                  <Button disabled className="bg-gray-100 text-gray-500">
-                    You are the host
-                  </Button>
-                ) : isUserParticipant(currentUserId) ? (
-                  <Button disabled className="bg-green-100 text-green-700">
-                    Already Joined
-                  </Button>
-                ) : !event.isActive ? (
-                  <Button disabled className="bg-gray-100 text-gray-500">
-                    Event Inactive
-                  </Button>
-                ) : new Date() > new Date(event.endDate) ? (
-                  <Button disabled className="bg-gray-100 text-gray-500">
-                    Event Ended
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleJoinEvent}
-                    disabled={isJoining}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {isJoining ? 'Joining...' : 'Join Event'}
-                  </Button>
-                )}
+              <div className="mt-6 pt-4 border-t flex items-center gap-4">
+                <div className="flex-1">
+                  {isEventHost(currentUserId) ? (
+                    <Button disabled className="bg-gray-100 text-gray-500">
+                      You are the host
+                    </Button>
+                  ) : isUserParticipant(currentUserId) ? (
+                    <Button disabled className="bg-green-100 text-green-700">
+                      Already Joined
+                    </Button>
+                  ) : !event.isActive ? (
+                    <Button disabled className="bg-gray-100 text-gray-500">
+                      Event Inactive
+                    </Button>
+                  ) : new Date() > new Date(event.endDate) ? (
+                    <Button disabled className="bg-gray-100 text-gray-500">
+                      Event Ended
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleJoinEvent}
+                      disabled={isJoining}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {isJoining ? 'Joining...' : 'Join Event'}
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Like Event Button */}
+                <Button
+                  onClick={handleLikeEvent}
+                  disabled={isLiking[event.id]}
+                  variant={userLikes[event.id] ? "default" : "outline"}
+                  size="sm"
+                  className={`${
+                    userLikes[event.id] 
+                      ? 'bg-pink-500 hover:bg-pink-600 text-white' 
+                      : 'border-pink-500 text-pink-500 hover:bg-pink-50'
+                  }`}
+                >
+                  {isLiking[event.id] ? (
+                    '💖 Liking...'
+                  ) : userLikes[event.id] ? (
+                    `💖 Liked (${event._count.userLikes})`
+                  ) : (
+                    `🤍 Like (${event._count.userLikes})`
+                  )}
+                </Button>
               </div>
             )}
           </CardContent>
@@ -696,9 +808,32 @@ export default function EventDetailPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>👍 {post._count.userUpvotes}</span>
-                      <span>💬 {post._count.comments}</span>
+                    <div className="flex items-center gap-4 text-sm">
+                      {/* Upvote Button - Only for participants/creators */}
+                      {currentUserId && (isUserParticipant(currentUserId) || isEventHost(currentUserId)) ? (
+                        <Button
+                          onClick={() => handleUpvotePost(post.id)}
+                          disabled={isUpvoting[post.id]}
+                          variant="ghost"
+                          size="sm"
+                          className={`p-1 h-auto ${
+                            userUpvotes[post.id] 
+                              ? 'text-blue-600 hover:text-blue-700' 
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          {isUpvoting[post.id] ? (
+                            '⏳'
+                          ) : userUpvotes[post.id] ? (
+                            `👍 ${post._count.userUpvotes}`
+                          ) : (
+                            `👍 ${post._count.userUpvotes}`
+                          )}
+                        </Button>
+                      ) : (
+                        <span className="text-gray-500">👍 {post._count.userUpvotes}</span>
+                      )}
+                      <span className="text-gray-500">💬 {post._count.comments}</span>
                     </div>
                   </div>
                 </CardHeader>

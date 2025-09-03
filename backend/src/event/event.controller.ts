@@ -113,4 +113,68 @@ export class EventController {
             message: 'Reply created successfully',
         };
     }
+
+    @Post(':id/like')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async likeEvent(
+        @Param('id') eventId: string,
+        @GetUser('sub') userId: string,
+    ) {
+        this.logger.log(`User ${userId} attempting to like event ${eventId}`);
+        const data = await this.eventService.likeEvent(eventId, userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Event liked successfully',
+        };
+    }
+
+    @Post(':id/unlike')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async unlikeEvent(
+        @Param('id') eventId: string,
+        @GetUser('sub') userId: string,
+    ) {
+        this.logger.log(`User ${userId} attempting to unlike event ${eventId}`);
+        const data = await this.eventService.unlikeEvent(eventId, userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Event unliked successfully',
+        };
+    }
+
+    @Post('post/:postId/upvote')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async upvotePost(
+        @Param('postId') postId: string,
+        @GetUser('sub') userId: string,
+    ) {
+        this.logger.log(`User ${userId} attempting to upvote post ${postId}`);
+        const data = await this.eventService.upvotePost(postId, userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Post upvoted successfully',
+        };
+    }
+
+    @Post('post/:postId/remove-upvote')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async removeUpvote(
+        @Param('postId') postId: string,
+        @GetUser('sub') userId: string,
+    ) {
+        this.logger.log(`User ${userId} attempting to remove upvote from post ${postId}`);
+        const data = await this.eventService.removeUpvote(postId, userId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Upvote removed successfully',
+        };
+    }
 }

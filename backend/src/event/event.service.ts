@@ -564,4 +564,248 @@ export class EventService {
             throw new Error('Failed to create reply');
         });
     }
+
+    async likeEvent(eventId: string, userId: string) {
+        // First, check if the event exists
+        const event = await this.prisma.event.findUnique({
+            where: { id: eventId },
+        });
+
+        if (!event) {
+            throw new Error('Event not found');
+        }
+
+        // Check if user already liked this event
+        const existingLike = await this.prisma.eventLike.findUnique({
+            where: {
+                userId_eventId: {
+                    userId: userId,
+                    eventId: eventId,
+                },
+            },
+        });
+
+        if (existingLike) {
+            throw new Error('You have already liked this event');
+        }
+
+        // Create the like
+        return await this.prisma.eventLike.create({
+            data: {
+                userId: userId,
+                eventId: eventId,
+            },
+            select: {
+                id: true,
+                createdAt: true,
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        _count: {
+                            select: {
+                                userLikes: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }).then(like => {
+            return {
+                event: {
+                    id: like.event.id,
+                    title: like.event.title,
+                    likesCount: like.event._count.userLikes,
+                },
+                message: 'Event liked successfully',
+            };
+        }).catch(error => {
+            console.error('Error liking event:', error);
+            throw new Error('Failed to like event');
+        });
+    }
+
+    async unlikeEvent(eventId: string, userId: string) {
+        // Check if user has liked this event
+        const existingLike = await this.prisma.eventLike.findUnique({
+            where: {
+                userId_eventId: {
+                    userId: userId,
+                    eventId: eventId,
+                },
+            },
+        });
+
+        if (!existingLike) {
+            throw new Error('You have not liked this event');
+        }
+
+        // Remove the like
+        return await this.prisma.eventLike.delete({
+            where: {
+                userId_eventId: {
+                    userId: userId,
+                    eventId: eventId,
+                },
+            },
+            select: {
+                event: {
+                    select: {
+                        id: true,
+                        title: true,
+                        _count: {
+                            select: {
+                                userLikes: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }).then(deletedLike => {
+            return {
+                event: {
+                    id: deletedLike.event.id,
+                    title: deletedLike.event.title,
+                    likesCount: deletedLike.event._count.userLikes,
+                },
+                message: 'Event unliked successfully',
+            };
+        }).catch(error => {
+            console.error('Error unliking event:', error);
+            throw new Error('Failed to unlike event');
+        });
+    }
+
+    async upvotePost(postId: string, userId: string) {
+        // First, check if the post exists
+        const post = await this.prisma.post.findUnique({
+            where: { id: postId },
+            include: {
+                event: {
+                    include: {
+                        creator: {
+                            select: {
+                                id: true,
+                            },
+                        },
+                        participants: {
+                            select: {
+                                id: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!post) {
+            throw new Error('Post not found');
+        }
+
+        // Check if user is either the creator or a participant of the event
+        const isCreator = post.event.creator.id === userId;
+        const isParticipant = post.event.participants.some(participant => participant.id === userId);
+
+        if (!isParticipant && !isCreator) {
+            throw new Error('You must be a participant or creator to upvote posts in this event');
+        }
+
+        // Check if user already upvoted this post
+        const existingUpvote = await this.prisma.upvote.findUnique({
+            where: {
+                userId_postId: {
+                    userId: userId,
+                    postId: postId,
+                },
+            },
+        });
+
+        if (existingUpvote) {
+            throw new Error('You have already upvoted this post');
+        }
+
+        // Create the upvote
+        return await this.prisma.upvote.create({
+            data: {
+                userId: userId,
+                postId: postId,
+            },
+            select: {
+                id: true,
+                createdAt: true,
+                post: {
+                    select: {
+                        id: true,
+                        content: true,
+                        _count: {
+                            select: {
+                                userUpvotes: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }).then(upvote => {
+            return {
+                post: {
+                    id: upvote.post.id,
+                    upvotesCount: upvote.post._count.userUpvotes,
+                },
+                message: 'Post upvoted successfully',
+            };
+        }).catch(error => {
+            console.error('Error upvoting post:', error);
+            throw new Error('Failed to upvote post');
+        });
+    }
+
+    async removeUpvote(postId: string, userId: string) {
+        // Check if user has upvoted this post
+        const existingUpvote = await this.prisma.upvote.findUnique({
+            where: {
+                userId_postId: {
+                    userId: userId,
+                    postId: postId,
+                },
+            },
+        });
+
+        if (!existingUpvote) {
+            throw new Error('You have not upvoted this post');
+        }
+
+        // Remove the upvote
+        return await this.prisma.upvote.delete({
+            where: {
+                userId_postId: {
+                    userId: userId,
+                    postId: postId,
+                },
+            },
+            select: {
+                post: {
+                    select: {
+                        id: true,
+                        content: true,
+                        _count: {
+                            select: {
+                                userUpvotes: true,
+                            },
+                        },
+                    },
+                },
+            },
+        }).then(deletedUpvote => {
+            return {
+                post: {
+                    id: deletedUpvote.post.id,
+                    upvotesCount: deletedUpvote.post._count.userUpvotes,
+                },
+                message: 'Upvote removed successfully',
+            };
+        }).catch(error => {
+            console.error('Error removing upvote:', error);
+            throw new Error('Failed to remove upvote');
+        });
+    }
 }
