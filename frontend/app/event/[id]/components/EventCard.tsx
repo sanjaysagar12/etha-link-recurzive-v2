@@ -124,6 +124,15 @@ export default function EventCard({
             <div className="flex-1">
               <div className="flex items-center space-x-2 text-sm text-gray-400">
                 <span className="font-medium text-white">r/Events</span>
+                {event.verified && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full">
+                      <Star className="w-3 h-3 fill-current" />
+                      <span className="text-xs font-medium">Verified</span>
+                    </div>
+                  </>
+                )}
                 <span>•</span>
                 <span>Posted by u/{event.creator.name || event.creator.email}</span>
                 <span>•</span>
@@ -132,7 +141,15 @@ export default function EventCard({
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold leading-tight text-white">{event.title}</h1>
+          <h1 className="text-3xl font-bold leading-tight text-white flex items-center gap-3">
+            {event.title}
+            {event.verified && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium rounded-full shadow-lg">
+                <Star className="w-4 h-4 fill-current" />
+                <span>Verified Event</span>
+              </div>
+            )}
+          </h1>
           {event.description && (
             <p className="text-gray-300 leading-relaxed text-lg">{event.description}</p>
           )}

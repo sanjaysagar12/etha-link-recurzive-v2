@@ -125,9 +125,37 @@ export default function EventSidebar({
       {/* Event Information */}
       <Card className="bg-white/5 backdrop-blur-md border border-white/20 shadow-xl hover:bg-white/7 transition-all duration-300">
         <CardHeader>
-          <CardTitle className="text-white">Event Information</CardTitle>
+          <CardTitle className="text-white flex items-center justify-between">
+            Event Information
+            {event.verified && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded-full">
+                <Star className="w-4 h-4 fill-current" />
+                <span className="text-xs font-medium">Verified</span>
+              </div>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {event.verified && (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 text-sm">Verification</span>
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <Star className="w-4 h-4 fill-current" />
+                  <span className="font-medium text-sm">Verified Event</span>
+                </div>
+              </div>
+              <div className="border-t border-gray-600 pt-4">
+                <p className="text-xs text-gray-400 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
+                  <span className="flex items-center gap-2 mb-1">
+                    <Star className="w-3 h-3 fill-current text-yellow-400" />
+                    <span className="font-medium text-yellow-400">Verified Event</span>
+                  </span>
+                  This event has been verified by the platform administrators for authenticity and quality.
+                </p>
+              </div>
+            </>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-gray-400 text-sm">Created</span>
             <span className="font-medium text-sm text-white">{formatShortDate(event.createdAt)}</span>
@@ -184,18 +212,22 @@ export default function EventSidebar({
               </div>
             )}
             <div className="flex-1">
-              <span className="text-sm font-medium text-white">u/{event.creator.name || event.creator.email}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white">u/{event.creator.name || event.creator.email}</span>
+                {event.verified && (
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full">
+                    <Star className="w-3 h-3 fill-current" />
+                    <span className="text-xs font-medium">Verified Host</span>
+                  </div>
+                )}
+              </div>
               <div className="text-xs text-gray-400">
                 Event Creator
               </div>
             </div>
           </div>
-          {event.verified && (
-            <div className="flex items-center space-x-2 text-yellow-500">
-              <Star className="w-4 h-4 fill-current" />
-              <span className="text-sm">Verified Event</span>
-            </div>
-          )}
+          
+          {/* Remove duplicate verification display since it's now in Event Information */}
         </CardContent>
       </Card>
 
