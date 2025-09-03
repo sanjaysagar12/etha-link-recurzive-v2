@@ -4,7 +4,7 @@
 export const ETHERLINK_CONFIG = {
     // Contract Configuration
     CONTRACT_ADDRESS: '0xa598c474afc51890B85eaDeb3D49fb2fB62A1851',
-    PRIVATE_KEY: 'e2f9bf23000effa9a76e62c0bf4ce3ab8cc63bd8d65e608c1fa5bef11ae46b0a',
+    PRIVATE_KEY: process.env.ETHEREUM_PRIVATE_KEY || '',
 
     // RPC Endpoints for Sepolia (try in order)
     RPC_URLS: [
