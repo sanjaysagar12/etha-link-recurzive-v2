@@ -1169,7 +1169,24 @@ export class EventService {
         select: {
           id: true,
           title: true,
+          isActive: true,
+          verified: true,
+          endDate: true,
           creatorId: true,
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            }
+          },
+          winner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            }
+          },
           participants: {
             select: {
               id: true,
@@ -1221,11 +1238,220 @@ export class EventService {
           id: event.id,
           title: event.title,
           totalParticipants: event._count.participants,
+          isActive: event.isActive,
+          verified: event.verified,
+          endDate: event.endDate,
+          creator: event.creator,
+          winner: event.winner,
         },
         participants: sanitizedParticipants,
       };
     } catch (error) {
       this.logger.error(`Failed to fetch participants for event ${eventId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Select winner for an event and distribute prize to their wallet
+   */
+  async selectWinner(eventId: string, hostId: string, winnerId: string) {
+    try {
+      // Check if event exists and get event details
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              wallet: true,
+            }
+          },
+          participants: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              wallet: true,
+            }
+          },
+          winner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            }
+          }
+        }
+      });
+
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      // Check if user is the event creator (host)
+      if (event.creator.id !== hostId) {
+        throw new Error('Only event hosts can select winners');
+      }
+
+      // Check if event is verified (prize must be locked)
+      if (!event.verified) {
+        throw new Error('Event must be verified to select winner');
+      }
+
+      // Check if winner is already selected
+      if (event.winner) {
+        throw new Error('Winner has already been selected for this event');
+      }
+
+      // Check if the winner is a participant
+      const winnerParticipant = event.participants.find(p => p.id === winnerId);
+      if (!winnerParticipant) {
+        throw new Error('Selected winner must be a participant in the event');
+      }
+
+      // Check if event has ended (or allow host to end it early)
+      const eventHasEnded = new Date() > event.endDate;
+      if (!eventHasEnded) {
+        // Allow host to select winner early, but warn about it
+        this.logger.log(`Host ${hostId} is selecting winner for event ${eventId} before official end date`);
+      }
+
+      // Check if event has a prize to distribute
+      if (!event.prize || parseFloat(event.prize) <= 0) {
+        throw new Error('Event has no prize to distribute');
+      }
+
+      const prizeAmount = event.prize;
+
+      // Ensure both host and winner have wallets
+      if (!event.creator.wallet) {
+        // Create wallet for host if doesn't exist
+        await this.prisma.wallet.create({
+          data: {
+            userId: event.creator.id,
+            balance: '0',
+            lockedBalance: prizeAmount, // Assume prize is locked in host wallet
+          }
+        });
+      }
+
+      if (!winnerParticipant.wallet) {
+        // Create wallet for winner if doesn't exist
+        await this.prisma.wallet.create({
+          data: {
+            userId: winnerId,
+            balance: '0',
+            lockedBalance: '0',
+          }
+        });
+      }
+
+      // Use transaction to ensure atomicity
+      const result = await this.prisma.$transaction(async (prisma) => {
+        // 1. Update event with winner and set as inactive
+        const updatedEvent = await prisma.event.update({
+          where: { id: eventId },
+          data: { 
+            winnerId: winnerId,
+            isActive: false, // Deactivate event after winner selection
+            updatedAt: new Date()
+          },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            },
+            winner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            },
+            participants: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            },
+            _count: {
+              select: {
+                participants: true,
+                posts: true,
+                userLikes: true
+              }
+            }
+          }
+        });
+
+        // 2. Get host and winner wallets
+        const hostWallet = await prisma.wallet.findUnique({
+          where: { userId: hostId }
+        });
+
+        const winnerWallet = await prisma.wallet.findUnique({
+          where: { userId: winnerId }
+        });
+
+        if (!hostWallet || !winnerWallet) {
+          throw new Error('Wallet not found');
+        }
+
+        // 3. Transfer prize from host's locked balance to winner's balance
+        const currentHostLockedBalance = parseFloat(hostWallet.lockedBalance);
+        const currentWinnerBalance = parseFloat(winnerWallet.balance);
+        const prizeAmountFloat = parseFloat(prizeAmount);
+
+        if (currentHostLockedBalance < prizeAmountFloat) {
+          throw new Error('Insufficient locked funds to distribute prize');
+        }
+
+        // Update host wallet (reduce locked balance)
+        await prisma.wallet.update({
+          where: { userId: hostId },
+          data: {
+            lockedBalance: (currentHostLockedBalance - prizeAmountFloat).toString(),
+          }
+        });
+
+        // Update winner wallet (increase balance)
+        await prisma.wallet.update({
+          where: { userId: winnerId },
+          data: {
+            balance: (currentWinnerBalance + prizeAmountFloat).toString(),
+          }
+        });
+
+        // 4. Record the transaction
+        await prisma.transaction.create({
+          data: {
+            amount: prizeAmount,
+            type: 'PRIZE_DISTRIBUTION',
+            status: 'CONFIRMED',
+            description: `Prize distribution for event: ${event.title}`,
+            userId: hostId, // Host initiated the transaction
+            senderWalletId: hostWallet.id,
+            receiverWalletId: winnerWallet.id,
+            eventId: eventId,
+            confirmedAt: new Date(),
+          }
+        });
+
+        return updatedEvent;
+      });
+
+      this.logger.log(`Winner ${winnerId} selected for event ${eventId} by host ${hostId}. Prize ${prizeAmount} ETH distributed.`);
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to select winner for event ${eventId}:`, error);
       throw error;
     }
   }

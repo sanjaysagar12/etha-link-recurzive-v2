@@ -286,4 +286,26 @@ export class EventController {
             message: 'Event unverified successfully',
         };
     }
+
+    @Patch(':id/select-winner')
+    @UseGuards(JwtGuard, RolesGuard)
+    @Roles(Role.USER, Role.ADMIN)
+    async selectWinner(
+        @Param('id') eventId: string,
+        @GetUser('sub') hostId: string,
+        @Body('winnerId') winnerId: string,
+    ) {
+        this.logger.log(`Host ${hostId} selecting winner ${winnerId} for event ${eventId}`);
+        
+        if (!winnerId) {
+            throw new Error('Winner ID is required');
+        }
+
+        const data = await this.eventService.selectWinner(eventId, hostId, winnerId);
+        return {
+            status: 'success',
+            data: data,
+            message: 'Winner selected and prize distributed successfully',
+        };
+    }
 }

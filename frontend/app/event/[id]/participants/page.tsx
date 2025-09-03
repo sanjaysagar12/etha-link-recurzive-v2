@@ -21,6 +21,19 @@ interface EventParticipantsData {
     id: string;
     title: string;
     totalParticipants: number;
+    isActive?: boolean;
+    verified?: boolean;
+    winner?: {
+      id: string;
+      name?: string;
+      email?: string;
+    };
+    creator?: {
+      id: string;
+      name?: string;
+      email?: string;
+    };
+    endDate?: string;
   };
   participants: User[];
 }
@@ -31,6 +44,9 @@ export default function EventParticipantsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState<User | null>(null);
 
   // Get current user ID from token
   const getCurrentUserId = () => {
@@ -131,6 +147,62 @@ export default function EventParticipantsPage() {
   const formatShortAddress = (address?: string) => {
     if (!address) return null;
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  const handleSelectWinner = (participant: User) => {
+    setSelectedWinner(participant);
+    setShowWinnerModal(true);
+  };
+
+  const confirmWinnerSelection = async () => {
+    if (!selectedWinner || !data) return;
+
+    setIsSelectingWinner(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      
+      const response = await fetch(`http://localhost:3000/api/event/${params.id}/select-winner`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          winnerId: selectedWinner.id
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`${selectedWinner.name || 'Participant'} has been selected as the winner! Prize distributed to their wallet.`);
+        setShowWinnerModal(false);
+        setSelectedWinner(null);
+        // Refresh the data to show updated winner status
+        fetchEventParticipants();
+      } else {
+        alert(`Error: ${result.message || 'Failed to select winner'}`);
+      }
+    } catch (error) {
+      console.error('Error selecting winner:', error);
+      alert('Failed to select winner');
+    } finally {
+      setIsSelectingWinner(false);
+    }
+  };
+
+  const canSelectWinner = () => {
+    console.log('Checking if user can select winner...');
+    console.log({ data, currentUserId });
+    if (!data || !currentUserId) return false;
+    console.log(data.event.creator?.id)
+    const isHost = data.event.creator?.id === currentUserId;
+    const hasWinner = !!data.event.winner;
+    const eventEnded = data.event.endDate ? new Date() > new Date(data.event.endDate) : false;
+    const isVerified = data.event.verified;
+    const isActive = data.event.isActive;
+    console.log(isHost , !hasWinner , isVerified , isActive);
+    return isHost && !hasWinner && isVerified && isActive;
   };
 
   if (!currentUserId) {
@@ -271,6 +343,35 @@ export default function EventParticipantsPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        {/* Winner Selection Info */}
+        {canSelectWinner() && (
+          <Card className="mb-6 bg-yellow-500/10 backdrop-blur-md border border-yellow-500/30 shadow-xl">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Crown className="w-6 h-6 text-yellow-400" />
+                <h3 className="text-lg font-semibold text-yellow-400">Select Winner</h3>
+              </div>
+              <p className="text-gray-300 text-sm">
+                The event has ended and is ready for winner selection. Click "Select Winner" on any participant card to choose the winner and distribute the prize.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Winner Announcement */}
+        {data.event.winner && (
+          <Card className="mb-6 bg-green-500/10 backdrop-blur-md border border-green-500/30 shadow-xl">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Trophy className="w-6 h-6 text-green-400" />
+                <h3 className="text-lg font-semibold text-green-400">Winner Announced</h3>
+              </div>
+              <p className="text-gray-300 text-sm">
+                🎉 <strong>{data.event.winner.name || 'Anonymous User'}</strong> has won this event! The prize has been distributed to their wallet.
+              </p>
+            </CardContent>
+          </Card>
+        )}
         {data.participants.length === 0 ? (
           <Card className="w-full text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl">
             <CardContent className="pt-12 pb-12">
@@ -325,18 +426,110 @@ export default function EventParticipantsPage() {
                   )}
 
                   {/* Join Date */}
-                  <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
+                  <div className="flex items-center gap-2 mb-4 p-2 bg-white/5 rounded-lg">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-300">
                       Member since {formatDate(participant.createdAt)}
                     </span>
                   </div>
+
+                  {/* Winner Selection Button - Only show for hosts */}
+                  {canSelectWinner() && (
+                    <Button
+                      onClick={() => handleSelectWinner(participant)}
+                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      Select as Winner
+                    </Button>
+                  )}
+
+                  {/* Winner Badge */}
+                  {data.event.winner?.id === participant.id && (
+                    <div className="flex items-center justify-center gap-2 mt-4 p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
+                      <Trophy className="w-5 h-5 text-green-400" />
+                      <span className="text-green-400 font-semibold">🎉 Winner!</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </main>
+
+      {/* Winner Selection Modal */}
+      {showWinnerModal && selectedWinner && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <Card className="w-96 max-w-[90vw] bg-white/10 backdrop-blur-md border border-white/20 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Crown className="w-6 h-6 text-yellow-400" />
+                Confirm Winner Selection
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center mb-6">
+                <div className="flex items-center justify-center mb-4">
+                  {selectedWinner.avatar ? (
+                    <img
+                      src={selectedWinner.avatar}
+                      alt={selectedWinner.name || 'Participant'}
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#E94042] to-purple-500 flex items-center justify-center">
+                      <User className="w-8 h-8 text-white" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  {selectedWinner.name || 'Anonymous User'}
+                </h3>
+                <p className="text-gray-300 text-sm mb-4">
+                  Are you sure you want to select this participant as the winner?
+                </p>
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                  <p className="text-yellow-400 text-sm">
+                    ⚠️ This action cannot be undone. The prize will be immediately transferred to the winner's wallet and the event will be closed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowWinnerModal(false);
+                    setSelectedWinner(null);
+                  }}
+                  disabled={isSelectingWinner}
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmWinnerSelection}
+                  disabled={isSelectingWinner}
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black"
+                >
+                  {isSelectingWinner ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-black border-t-transparent mr-2"></div>
+                      Selecting...
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="w-4 h-4 mr-2" />
+                      Confirm Winner
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
