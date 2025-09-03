@@ -4,6 +4,7 @@ import { JwtGuard } from '../application/common/guards/jwt.guard';
 import { RolesGuard } from '../application/common/guards/roles.guard';
 import { GetUser } from 'src/application/common/decorator/get-user.decorator';
 import { EventService } from './event.service';
+import { CreateEventDto } from './dto';
 
 @Controller('api/event')
 @UseGuards(JwtGuard, RolesGuard)
@@ -16,7 +17,7 @@ export class EventController {
     @Roles(Role.USER, Role.ADMIN)
     async createEvent(
         @GetUser('sub') userId: string,
-        @Body() createEventDto: any,
+        @Body() createEventDto: CreateEventDto,
     ) {
         this.logger.log(`User ${userId} creating new event`);
         const data = await this.eventService.createEvent(userId, createEventDto);
