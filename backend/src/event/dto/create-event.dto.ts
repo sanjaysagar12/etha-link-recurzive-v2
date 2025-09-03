@@ -13,10 +13,6 @@ export class CreateEventDto {
     prize?: string;
 
     @IsOptional()
-    @IsString()
-    poll?: string;
-
-    @IsOptional()
     @IsBoolean()
     verified?: boolean;
 

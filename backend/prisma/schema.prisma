@@ -45,7 +45,6 @@ model Event {
   title       String
   description String?
   prize       String?
-  poll        String?
   verified    Boolean  @default(false)
   startDate   DateTime
   endDate     DateTime

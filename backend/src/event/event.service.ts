@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateEventDto } from './dto';
 
 @Injectable()
 export class EventService {
     constructor(private prisma: PrismaService) {}
     
-    async createEvent(userId: string, createEventDto: any) {
+    async createEvent(userId: string, createEventDto: CreateEventDto) {
         return await this.prisma.event.create({
             data: {
                 title: createEventDto.title,
                 description: createEventDto.description,
                 prize: createEventDto.prize,
-                poll: createEventDto.poll,
                 startDate: new Date(createEventDto.startDate),
                 endDate: new Date(createEventDto.endDate),
                 creatorId: userId,
@@ -21,7 +21,6 @@ export class EventService {
                 title: true,
                 description: true,
                 prize: true,
-                poll: true,
                 verified: true,
                 startDate: true,
                 endDate: true,
