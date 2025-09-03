@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Logger, Get } from '@nestjs/common';
 import { Roles, Role } from 'src/application/common/decorator/roles.decorator';
 import { JwtGuard } from '../application/common/guards/jwt.guard';
 import { RolesGuard } from '../application/common/guards/roles.guard';
@@ -21,6 +21,17 @@ export class EventController {
     ) {
         this.logger.log(`User ${userId} creating new event`);
         const data = await this.eventService.createEvent(userId, createEventDto);
+        return {
+            status: 'success',
+            data: data,
+        };
+    }
+
+    @Get()
+    @Roles(Role.USER, Role.ADMIN)
+    async getAllEvents() {
+        this.logger.log('Fetching all events');
+        const data = await this.eventService.getAllEvents();
         return {
             status: 'success',
             data: data,

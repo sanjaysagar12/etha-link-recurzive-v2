@@ -41,4 +41,41 @@ export class EventService {
             throw new Error('Failed to create event');
         });
     }
+
+    async getAllEvents() {
+        return await this.prisma.event.findMany({
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                prize: true,
+                verified: true,
+                startDate: true,
+                endDate: true,
+                isActive: true,
+                createdAt: true,
+                creator: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        participants: true,
+                        posts: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        }).then(events => {
+            return events;
+        }).catch(error => {
+            console.error('Error fetching events:', error);
+            throw new Error('Failed to fetch events');
+        });
+    }
 }
