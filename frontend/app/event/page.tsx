@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +28,7 @@ interface Event {
 }
 
 export default function EventsPage() {
+  const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +63,10 @@ export default function EventsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEventClick = (eventId: string) => {
+    router.push(`/event/${eventId}`);
   };
 
   useEffect(() => {
@@ -123,7 +129,11 @@ export default function EventsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
-              <Card key={event.id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={event.id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleEventClick(event.id)}
+              >
                 {event.thumbnail && (
                   <div className="aspect-video w-full overflow-hidden rounded-t-lg">
                     <img
