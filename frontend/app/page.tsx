@@ -62,7 +62,7 @@ export default function HomePage() {
 
   const fetchFeaturedEvents = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/event', {
+      const response = await fetch('https://api-etherlink.portos.cloud/api/event', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

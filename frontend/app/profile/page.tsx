@@ -242,7 +242,7 @@ export default function ProfilePage() {
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/user/me', {
+      const response = await fetch('https://api-etherlink.portos.cloud/api/user/me', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -353,7 +353,7 @@ export default function ProfilePage() {
     try {
       const token = localStorage.getItem('access_token');
       
-      const response = await fetch('http://localhost:3000/etherlink/distribute-funds', {
+      const response = await fetch('https://api-etherlink.portos.cloud/etherlink/distribute-funds', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

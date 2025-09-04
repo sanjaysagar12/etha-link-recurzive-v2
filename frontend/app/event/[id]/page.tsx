@@ -120,7 +120,7 @@ export default function EventDetailPage() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`http://localhost:3000/api/event/${params.id}`, {
+      const response = await fetch(`https://api-etherlink.portos.cloud/api/event/${params.id}`, {
         method: 'GET',
         headers,
       });
@@ -175,7 +175,7 @@ export default function EventDetailPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:3000/api/event/${params.id}/join`, {
+            const response = await fetch(`https://api-etherlink.portos.cloud/api/event/${event.id}/join`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

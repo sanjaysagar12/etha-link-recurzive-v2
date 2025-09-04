@@ -68,7 +68,7 @@ export default function MyEventsPage() {
     try {
       const token = localStorage.getItem('access_token');
       
-      const response = await fetch(`http://localhost:3000/api/event/hosted/${currentUserId}`, {
+      const response = await fetch('https://api-etherlink.portos.cloud/api/event/my', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

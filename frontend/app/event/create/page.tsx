@@ -59,7 +59,7 @@ export default function CreateEventPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/event', {
+      const response = await fetch('https://api-etherlink.portos.cloud/api/event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
