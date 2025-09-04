@@ -98,7 +98,7 @@ export default function HomePage() {
     if (isAuthenticated) {
       window.location.href = '/event/create';
     } else {
-      window.location.href = '/login';
+      window.location.href = '/auth/login';
     }
   };
 
