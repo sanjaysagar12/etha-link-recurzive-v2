@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EthaLink",
+  title: "EtherLink",
   description: "Connect with events and communities",
 };
 
