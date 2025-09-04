@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -23,11 +23,31 @@ export default function AuthCallback() {
     }, [searchParams, router]);
 
     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Authenticating...</p>
+        <div className="flex items-center justify-center min-h-screen bg-[#161616]">
+            <div className="text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl rounded-lg p-8">
+                <div className="animate-spin rounded-full h-16 w-16 border-2 border-[#E94042] border-t-transparent mx-auto mb-4"></div>
+                <p className="text-white text-lg">Authenticating...</p>
+                <p className="text-gray-400 text-sm mt-2">Please wait while we sign you in</p>
             </div>
         </div>
+    );
+}
+
+function LoadingFallback() {
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-[#161616]">
+            <div className="text-center bg-white/5 backdrop-blur-md border border-white/20 shadow-xl rounded-lg p-8">
+                <div className="animate-spin rounded-full h-16 w-16 border-2 border-[#E94042] border-t-transparent mx-auto mb-4"></div>
+                <p className="text-white text-lg">Loading...</p>
+            </div>
+        </div>
+    );
+}
+
+export default function AuthCallback() {
+    return (
+        <Suspense fallback={<LoadingFallback />}>
+            <AuthCallbackContent />
+        </Suspense>
     );
 }

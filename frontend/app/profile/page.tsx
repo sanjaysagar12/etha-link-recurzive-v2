@@ -517,6 +517,13 @@ export default function ProfilePage() {
               
               <div className="flex items-center gap-3">
                 <button
+                  onClick={() => router.push('/event/my')}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:bg-white/10 rounded-lg backdrop-blur-sm border border-white/20 transition-colors"
+                >
+                  <Calendar className="w-4 h-4" />
+                  My Events
+                </button>
+                <button
                   onClick={() => router.push('/')}
                   className="flex items-center gap-2 px-4 py-2 text-gray-300 hover:bg-white/10 rounded-lg backdrop-blur-sm border border-white/20 transition-colors"
                 >
